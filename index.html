@@ -54,15 +54,25 @@
     .title-actions { display: flex; flex-direction: column; gap: 12px; align-items: center; }
     .title-actions button { min-width: 240px; }
 
-    /* === 設定画面 === */
+    /* === 設定画面(2 カラム対応) === */
     #screen-settings.active {
       align-items: flex-start;
       justify-content: center;
-      padding: 24px 16px;
+      padding: 16px 16px;
       overflow-y: auto;
     }
-    #screen-settings .screen-content { max-width: 640px; }
-    #screen-settings h2 { color: #ffd700; margin: 0 0 20px; }
+    #screen-settings .screen-content {
+      max-width: 920px;
+      width: 100%;
+    }
+    #screen-settings h2 { color: #ffd700; margin: 0 0 14px; font-size: 20px; }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .settings-grid .setting-group { margin-bottom: 0; }
+    .setting-group.full-width { grid-column: 1 / -1; }
     .setting-group {
       border: 1px solid #5a4a3a;
       border-radius: 6px;
@@ -454,40 +464,59 @@
   <!-- ======================== 設定画面 ======================== -->
   <section class="screen" id="screen-settings">
     <div class="screen-content">
-      <h2>ゲーム設定</h2>
+      <h2 data-i18n="settings.title">ゲーム設定</h2>
 
-      <fieldset class="setting-group">
-        <legend>AI 戦略</legend>
-        <label><input type="radio" name="ai-strategy" value="balanced" checked> バランス(中庸)</label>
-        <label><input type="radio" name="ai-strategy" value="aggressive"> 攻め寄り(機動火力重視)</label>
-        <label><input type="radio" name="ai-strategy" value="defensive"> 守り寄り(耐久遠距離重視)</label>
-      </fieldset>
+      <div class="settings-grid">
+        <fieldset class="setting-group">
+          <legend data-i18n="settings.aiStrategy">AI 戦略</legend>
+          <label><input type="radio" name="ai-strategy" value="balanced" checked> <span data-i18n="settings.strategy.balanced">バランス(中庸)</span></label>
+          <label><input type="radio" name="ai-strategy" value="aggressive"> <span data-i18n="settings.strategy.aggressive">攻め寄り(機動火力重視)</span></label>
+          <label><input type="radio" name="ai-strategy" value="defensive"> <span data-i18n="settings.strategy.defensive">守り寄り(耐久遠距離重視)</span></label>
+        </fieldset>
 
-      <fieldset class="setting-group">
-        <legend>AI 難易度</legend>
-        <label><input type="radio" name="ai-difficulty" value="easy"> やさしい(初期金 3 / 1 駒・サイクル)</label>
-        <label><input type="radio" name="ai-difficulty" value="normal" checked> ふつう(初期金 5 / 2 駒・サイクル)</label>
-        <label><input type="radio" name="ai-difficulty" value="hard"> むずかしい(初期金 7 / 3 駒・サイクル)</label>
-      </fieldset>
+        <fieldset class="setting-group">
+          <legend data-i18n="settings.aiDifficulty">AI 難易度</legend>
+          <label><input type="radio" name="ai-difficulty" value="easy"> <span data-i18n="settings.difficulty.easy">やさしい(初期金 3 / 1 駒・サイクル)</span></label>
+          <label><input type="radio" name="ai-difficulty" value="normal" checked> <span data-i18n="settings.difficulty.normal">ふつう(初期金 5 / 2 駒・サイクル)</span></label>
+          <label><input type="radio" name="ai-difficulty" value="hard"> <span data-i18n="settings.difficulty.hard">むずかしい(初期金 7 / 3 駒・サイクル)</span></label>
+        </fieldset>
 
-      <fieldset class="setting-group">
-        <legend>障害物パターン</legend>
-        <label><input type="radio" name="obstacle" value="standard" checked> 標準(row 2 / row 5 に各 4 マス)</label>
-        <label><input type="radio" name="obstacle" value="none"> なし(全マス通行可)</label>
-        <label><input type="radio" name="obstacle" value="dense"> 多め(分散配置 12 マス)</label>
-      </fieldset>
+        <fieldset class="setting-group">
+          <legend data-i18n="settings.obstacle">障害物パターン</legend>
+          <label><input type="radio" name="obstacle" value="standard" checked> <span data-i18n="settings.obstaclePattern.standard">標準(row 2 / row 5 に各 4 マス)</span></label>
+          <label><input type="radio" name="obstacle" value="none"> <span data-i18n="settings.obstaclePattern.none">なし(全マス通行可)</span></label>
+          <label><input type="radio" name="obstacle" value="dense"> <span data-i18n="settings.obstaclePattern.dense">多め(分散配置 12 マス)</span></label>
+        </fieldset>
 
-      <fieldset class="setting-group">
-        <legend>出撃編成 — shop に並ぶ駒種(全選択 = 全駒)</legend>
-        <div class="loadout-list" id="loadout-list">
-          <!-- populated by JS -->
-        </div>
-      </fieldset>
+        <fieldset class="setting-group">
+          <legend data-i18n="settings.audio">音量</legend>
+          <label data-i18n="settings.seVolume">SE 音量
+            <input type="range" id="se-volume" min="0" max="100" value="60" style="width: 100%; margin-top: 4px;">
+          </label>
+          <label data-i18n="settings.bgmVolume">BGM 音量
+            <input type="range" id="bgm-volume" min="0" max="100" value="40" style="width: 100%; margin-top: 4px;">
+          </label>
+        </fieldset>
+
+        <fieldset class="setting-group full-width">
+          <legend data-i18n="settings.playerLoadout">プレイヤー出撃編成 — shop に並ぶ駒種(全選択 = 全駒)</legend>
+          <div class="loadout-list" id="loadout-list">
+            <!-- populated by JS -->
+          </div>
+        </fieldset>
+
+        <fieldset class="setting-group full-width">
+          <legend data-i18n="settings.aiLoadout">AI 出撃編成(全解除 = 難易度デフォルト)</legend>
+          <div class="loadout-list" id="ai-loadout-list">
+            <!-- populated by JS -->
+          </div>
+        </fieldset>
+      </div>
 
       <div class="settings-actions">
-        <button class="btn-secondary" id="settings-back">タイトルに戻る</button>
-        <button class="btn-tertiary" id="settings-reset">デフォルト</button>
-        <button class="btn-primary" id="settings-start">この設定で開始</button>
+        <button class="btn-secondary" id="settings-back" data-i18n="common.backToTitle">タイトルに戻る</button>
+        <button class="btn-tertiary" id="settings-reset" data-i18n="common.default">デフォルト</button>
+        <button class="btn-primary" id="settings-start" data-i18n="common.startWithSettings">この設定で開始</button>
       </div>
     </div>
   </section>

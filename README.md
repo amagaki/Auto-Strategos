@@ -105,6 +105,14 @@ npm run preview  # 配信前確認
 
 ```
 Auto-Strategos/
+├── README.md                 # これ
+├── LICENSE.md                # CC BY-NC-ND 4.0
+├── package.json              # Node 依存
+├── package-lock.json         # 依存ロック
+├── tsconfig.json             # TypeScript 設定
+├── vite.config.ts            # Vite (base: './' / port: 5181)
+├── index.html                # 4 画面 + モーダルの HTML
+├── .gitignore                # git 除外
 ├── data/
 │   └── config.json          # 駒能力値・経済・難易度・描画設定
 ├── src/
@@ -119,13 +127,46 @@ Auto-Strategos/
 │   │   ├── Shop.ts           # shop 提示・リロール・利息
 │   │   ├── AI.ts             # AI 戦略パターン + 難易度
 │   │   └── HoverPredict.ts   # 3 ターン予測経路シミュレーション
-│   └── render/
-│       ├── BoardRenderer.ts  # 盤面・駒・ハイライト描画
-│       ├── AnimationRenderer.ts  # 自動進行アニメ + パーティクル
-│       └── HUD.ts            # HUD / shop card / 凡例 / リザルト
-├── index.html                # 4 画面 + チュートリアルモーダルの HTML
-└── vite.config.ts            # base: './' / port: 5181
+│   ├── render/
+│   │   ├── BoardRenderer.ts  # 盤面・駒・ハイライト描画
+│   │   ├── AnimationRenderer.ts  # 自動進行アニメ + パーティクル
+│   │   ├── HUD.ts            # HUD / shop card / 凡例 / リザルト
+│   │   └── theme.ts          # 配色定数(p5 描画用、CSS 変数と同期)
+│   ├── i18n/
+│   │   ├── index.ts          # i18n ヘルパー(t / setLang / 自動判定)
+│   │   └── locales/
+│   │       ├── ja.ts         # 日本語辞書
+│   │       └── en.ts         # 英語辞書
+│   ├── audio/
+│   │   └── SoundManager.ts   # 仮 SE(p5.sound シンセ) + 音量管理
+│   └── analytics.ts          # GA4 ヘルパー(trackEvent)
+└── assets/
+    ├── images/               # 画像素材(後日投入)
+    └── audio/                # 音源(後日投入、仮 SE フォールバック)
 ```
+
+## 📦 GitHub Pages リポジトリへの含めるファイル
+
+公開リポジトリには **上記の `Auto-Strategos/` フォルダを丸ごと**入れます。git で除外されるもの:
+
+**含めない**(`.gitignore` で除外):
+- `node_modules/` — `npm install` で復元
+- `dist/` — `npm run build` で生成
+- `.claude/` — Claude Code セッション固有
+- `.DS_Store`, `Thumbs.db`, `*.log` — OS / ログ
+- `.vscode/`, `.idea/` — エディタ設定
+
+**含める**(全部):
+- `README.md`, `LICENSE.md`
+- `package.json`, `package-lock.json`, `tsconfig.json`, `vite.config.ts`
+- `index.html`
+- `src/` 配下すべて
+- `data/config.json`
+- `assets/` ディレクトリ(空でも .gitkeep を置いて構造を保つ)
+- `.gitignore`
+
+訪問者は `git clone` → `npm install` → `npm run dev` でローカル起動可能。
+GitHub Pages 公開時は `npm run build` の `dist/` を `gh-pages` ブランチに push(GitHub Actions で自動化推奨)。
 
 ---
 
