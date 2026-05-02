@@ -119,22 +119,77 @@ function drawCombatFlashes(p: p5, step: AnimationStep, state: GameState, tRaw: n
     }
   }
 
-  // 到達イベント: ゴールラインで光る
+  // 到達イベント: ゴールラインフラッシュ + 大型 ★テキスト + パーティクル
   for (const ev of step.reachEvents) {
-    p.push();
-    p.noStroke();
-    const goalY = ev.side === 'player'
-      ? BOARD_TOP_Y(state)
-      : BOARD_BOTTOM_Y(state);
-    const localT = (tRaw - 0.35) / 0.5;
-    const alpha = Math.round((1 - localT) * 200);
-    p.fill(255, 215, 0, alpha);
-    p.textAlign(p.CENTER, p.CENTER);
-    p.textSize(16);
-    p.textStyle(p.BOLD);
-    p.text(ev.side === 'player' ? '到達!' : '突破!', p.width / 2, goalY);
-    p.pop();
+    drawReachEffect(p, state, ev, tRaw);
   }
+}
+
+// 到達演出: ゴールラインの太い光線 + 大型「★ 到達! ★」 + 拡散パーティクル
+function drawReachEffect(
+  p: p5,
+  state: GameState,
+  ev: { pieceId: number; side: 'player' | 'enemy' },
+  tRaw: number,
+): void {
+  if (tRaw < 0.2) return;
+  const localT = Math.min(1, (tRaw - 0.2) / 0.8);  // 0..1
+  const boardSize = state.config.rules.boardSize;
+  const isPlayerReach = ev.side === 'player';
+  const goalY = isPlayerReach
+    ? BOARD_TOP_Y(state)
+    : BOARD_BOTTOM_Y(state);
+  // 色: player 到達 = 金色(勝利寄り)、enemy 到達 = 朱色(敗北寄り)
+  const color = isPlayerReach ? [255, 215, 80] : [255, 100, 80];
+
+  p.push();
+
+  // 1. ゴールライン太線フラッシュ
+  const lineAlpha = Math.round((1 - localT) * 200);
+  const lineWeight = 4 + (1 - localT) * 8;
+  p.noFill();
+  p.stroke(color[0], color[1], color[2], lineAlpha);
+  p.strokeWeight(lineWeight);
+  const lineY = isPlayerReach
+    ? 32  // 上端
+    : 32 + boardSize * 80;  // 下端
+  p.line(32, lineY, 32 + boardSize * 80, lineY);
+
+  // 2. 大型「★ ... ★」テキスト(拡大しながらフェード)
+  const textAlpha = Math.round((1 - localT) * 240);
+  const scale = 1 + localT * 0.6;
+  p.push();
+  p.translate(p.width / 2, goalY + (isPlayerReach ? 16 : -16));
+  p.scale(scale);
+  p.noStroke();
+  // 影
+  p.fill(0, 0, 0, Math.round(textAlpha * 0.5));
+  p.textAlign(p.CENTER, p.CENTER);
+  p.textSize(22);
+  p.textStyle(p.BOLD);
+  const label = isPlayerReach ? '★ 到達! ★' : '★ 突破! ★';
+  p.text(label, 1, 1);
+  // 本体
+  p.fill(color[0], color[1], color[2], textAlpha);
+  p.text(label, 0, 0);
+  p.pop();
+
+  // 3. 散る星パーティクル(8 個、ライン中央から左右へ)
+  const starCount = 8;
+  const baseAngle = ev.pieceId * 0.5;
+  for (let i = 0; i < starCount; i++) {
+    const angle = baseAngle + (i / starCount) * Math.PI * 2;
+    const distance = localT * 60;
+    const px = p.width / 2 + Math.cos(angle) * distance;
+    const py = goalY + Math.sin(angle) * distance;
+    const fadeAlpha = Math.round((1 - localT) * 200);
+    p.noStroke();
+    p.fill(color[0], color[1], color[2], fadeAlpha);
+    const sz = 6 - localT * 3;
+    p.ellipse(px, py, sz, sz);
+  }
+
+  p.pop();
 }
 
 // 撃破時の放射状パーティクル(駒位置から 8 方向へ拡散)

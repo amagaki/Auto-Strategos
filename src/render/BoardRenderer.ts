@@ -473,7 +473,9 @@ export function drawMoveHighlights(
     p.rect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8, 8);
   }
 
-  // 弓兵の遠距離攻撃ターゲットも表示
+  // 弓兵の遠距離攻撃: 射程 1〜2 マスを表示(味方で遮られたら停止)
+  //   空マス: 薄紫塗り(射程の可視化)
+  //   敵駒 : 濃い紫枠(攻撃可能を強調)
   if (type.attackRange === 'rangedForward') {
     const dy = forwardDelta(piece.side);
     for (let dist = 1; dist <= 2; dist++) {
@@ -481,37 +483,49 @@ export function drawMoveHighlights(
       const row = piece.row + dist * dy;
       if (!isInBoard(col, row, boardSize)) break;
       const occ = pieceAt(board, col, row);
-      if (!occ) continue;
-      if (occ.side === piece.side) break;  // 味方で遮られる
-      // 遠距離ターゲット: 紫色枠
+      if (occ && occ.side === piece.side) break;  // 味方で遮られる
       const x = colToX(col);
       const y = rowToY(row, boardSize);
-      p.noFill();
-      p.stroke(200, 120, 220, 220);
-      p.strokeWeight(3);
-      p.rect(x + 8, y + 8, CELL_SIZE - 16, CELL_SIZE - 16, 6);
-      p.noStroke();
-      break;
+      if (occ) {
+        // 敵駒: 濃い紫枠
+        p.noFill();
+        p.stroke(200, 120, 220, 220);
+        p.strokeWeight(3);
+        p.rect(x + 8, y + 8, CELL_SIZE - 16, CELL_SIZE - 16, 6);
+        p.noStroke();
+        break;  // 敵に当たれば射程終了
+      } else {
+        // 空マス: 薄紫塗り(射程の可視化)
+        p.fill(200, 120, 220, 55);
+        p.rect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12, 6);
+      }
     }
   }
 
-  // 槍兵の横払い対象も表示
+  // 槍兵の横払い: 横 1 マスを表示
+  //   空マス: 薄緑塗り(攻撃範囲の可視化)
+  //   敵駒 : 濃い緑枠(攻撃可能を強調)
   if (type.attackRange === 'spearReach') {
     for (const dx of [-1, 1]) {
       const col = piece.col + dx;
       const row = piece.row;
       if (!isInBoard(col, row, boardSize)) continue;
       const occ = pieceAt(board, col, row);
-      if (!occ) continue;
-      if (occ.side === piece.side) continue;
-      // 横払いターゲット: 緑枠(近接攻撃可能を強調)
+      if (occ && occ.side === piece.side) continue;
       const x = colToX(col);
       const y = rowToY(row, boardSize);
-      p.noFill();
-      p.stroke(120, 220, 140, 220);
-      p.strokeWeight(3);
-      p.rect(x + 8, y + 8, CELL_SIZE - 16, CELL_SIZE - 16, 6);
-      p.noStroke();
+      if (occ) {
+        // 敵駒: 濃い緑枠
+        p.noFill();
+        p.stroke(120, 220, 140, 220);
+        p.strokeWeight(3);
+        p.rect(x + 8, y + 8, CELL_SIZE - 16, CELL_SIZE - 16, 6);
+        p.noStroke();
+      } else {
+        // 空マス: 薄緑塗り
+        p.fill(120, 220, 140, 55);
+        p.rect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12, 6);
+      }
     }
   }
   p.pop();
