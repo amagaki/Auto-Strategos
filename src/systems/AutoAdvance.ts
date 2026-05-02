@@ -10,6 +10,7 @@ import {
   forwardDelta,
   forwardProgress,
   getMoveCandidatesWithDetour,
+  filterMoveCandidates,
   getPieceType,
   getSpearSideAttackCells,
   isInBoard,
@@ -125,17 +126,9 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
   }
 
   const candidates = getMoveCandidatesWithDetour(piece, config, board);
-  // 味方で塞がれたマス、または passThrough の途中マスが占有されている場合は除外
-  const filtered = candidates.filter((c) => {
-    const occ = pieceAt(board, c.col, c.row);
-    if (occ && occ.side === piece.side) return false;
-    // 経路の途中マスチェック(暗殺者の斜め前 2、騎兵の前 2)
-    if (c.passThrough) {
-      const through = pieceAt(board, c.passThrough.col, c.passThrough.row);
-      if (through) return false;
-    }
-    return true;
-  });
+  // 共通フィルタ: 自陣壁 / passThrough 通行不可を除外
+  // 同陣営の駒で塞がれているマスは「楽観的」に残す(Phase 2B 順次処理で前駒が動いた後に再判定される)
+  const filtered = filterMoveCandidates(piece, candidates, board);
 
   if (filtered.length === 0) return { kind: 'stay' };
 
@@ -145,6 +138,7 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
   //   敵障害物破壊可能: 40 + 前進度
   //   敵障害物攻撃(破壊不可): 25 + 前進度
   //   ただ進む: 10 + 前進度
+  //   自駒で塞がれた前進候補も「ただ進む」扱い(score 10 系)で残す → Phase 2B で空けば動く
   // 同点は決定論的破り(配列の先頭)
   const attackerType = getPieceType(config, piece.typeId);
   const scored = filtered.map((c) => {
@@ -167,6 +161,7 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
         score: baseScore + progressScore + fwdGain * 0.1,
       };
     }
+    // 同陣営の駒で塞がれているマスも「移動扱い」(occ=null) → Phase 2B で空けば動く / 塞がっていれば stay
     return { cand: c, occ: null, score: 10 + progressScore + fwdGain * 0.1 };
   });
 

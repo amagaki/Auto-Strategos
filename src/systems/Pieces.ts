@@ -84,34 +84,76 @@ export function getMoveCandidates(piece: Piece, config: GameConfig): MoveCandida
   return candidates.filter((c) => isInBoard(c.col, c.row, config.rules.boardSize));
 }
 
-// 自陣壁迂回を加味した移動候補
-//   forwardOnlyHeavy 駒(重装兵・槍兵・投石兵・指揮官・投石機)について、
-//   前 1 マスが自陣の壁(同 side の obstacle)で塞がれている場合のみ斜め前 1 マスを候補に追加。
-//   通常時は getMoveCandidates と同じ。
+// 共通フィルタ: 移動候補のうち到達可能なものに絞る
+//   除外: 自陣壁(同 side の obstacle)/ passThrough の途中マスが占有されている場合
+//   楽観的に残す: 同陣営の駒(障害物以外)で塞がれているマス
+//     → 前駒が Phase 2B で先に動けば自分も動ける(隊列追従)
+//     → 動かなければ Phase 2B で移動キャンセル → stay
+export function filterMoveCandidates(
+  piece: Piece,
+  candidates: MoveCandidate[],
+  board: BoardState,
+): MoveCandidate[] {
+  return candidates.filter((c) => {
+    const occ = pieceAt(board, c.col, c.row);
+    if (occ && occ.side === piece.side && occ.typeId === 'obstacle') return false;
+    if (c.passThrough) {
+      const through = pieceAt(board, c.passThrough.col, c.passThrough.row);
+      if (through) return false;
+    }
+    return true;
+  });
+}
+
+// 自陣壁迂回 + 緊急脱出を加味した移動候補
+//   (a) forwardOnlyHeavy 駒について、前 1 マスが自陣壁なら斜め前 1 マスを候補に追加
+//   (b) フィルタ後の候補が 0 になった場合の緊急脱出として、
+//       隣接前方 3 マス(前 1 + 斜め前 2)のうち到達可能なマスを候補に追加
 //   chooseAction とホバー予測ハイライトの両方から呼ばれ、決定論性を保つ。
 export function getMoveCandidatesWithDetour(
   piece: Piece,
   config: GameConfig,
   board: BoardState,
 ): MoveCandidate[] {
-  const candidates = getMoveCandidates(piece, config);
+  const baseCandidates = getMoveCandidates(piece, config);
   const type = getPieceType(config, piece.typeId);
-  if (type.moveStyle !== 'forwardOnlyHeavy') return candidates;
+  if (type.moveStyle === 'stationary') return baseCandidates;
+
   const dy = forwardDelta(piece.side);
-  const fwdRow = piece.row + dy;
-  const blocker = pieceAt(board, piece.col, fwdRow);
-  if (!blocker || blocker.side !== piece.side || blocker.typeId !== 'obstacle') {
-    return candidates;
+  const candidates = [...baseCandidates];
+
+  // (a) forwardOnlyHeavy: 前 1 マスが自陣壁なら斜め前 1 マスを追加
+  if (type.moveStyle === 'forwardOnlyHeavy') {
+    const fwdRow = piece.row + dy;
+    const blocker = pieceAt(board, piece.col, fwdRow);
+    if (blocker && blocker.side === piece.side && blocker.typeId === 'obstacle') {
+      for (const dx of [-1, 1] as const) {
+        const c = piece.col + dx;
+        const r = fwdRow;
+        if (!isInBoard(c, r, config.rules.boardSize)) continue;
+        if (candidates.some((x) => x.col === c && x.row === r)) continue;
+        candidates.push({ col: c, row: r, kind: 'diag' });
+      }
+    }
   }
-  // 自陣壁で塞がれている → 斜め前 1 マス × 2 を候補に追加
-  const extra: MoveCandidate[] = [];
-  for (const dx of [-1, 1] as const) {
-    const c = piece.col + dx;
-    const r = fwdRow;
-    if (!isInBoard(c, r, config.rules.boardSize)) continue;
-    extra.push({ col: c, row: r, kind: 'diag' });
+
+  // (b) 緊急脱出: フィルタ後 0 件なら隣接前方 3 マスから到達可能なマスを追加
+  const usable = filterMoveCandidates(piece, candidates, board);
+  if (usable.length === 0) {
+    const fwdRow = piece.row + dy;
+    for (const dx of [-1, 0, 1] as const) {
+      const c = piece.col + dx;
+      const r = fwdRow;
+      if (!isInBoard(c, r, config.rules.boardSize)) continue;
+      if (candidates.some((x) => x.col === c && x.row === r)) continue;
+      const occ = pieceAt(board, c, r);
+      if (occ && occ.side === piece.side && occ.typeId === 'obstacle') continue;
+      const kind = dx === 0 ? 'forward1' : 'diag';
+      candidates.push({ col: c, row: r, kind });
+    }
   }
-  return [...candidates, ...extra];
+
+  return candidates;
 }
 
 // 槍兵の横攻撃マス(動かずに攻撃できる横 1 マス)

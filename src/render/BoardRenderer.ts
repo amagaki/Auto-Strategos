@@ -1,6 +1,6 @@
 import type p5 from 'p5';
 import type { Piece, PieceTypeData, GameConfig, GameState, BoardState } from '../types';
-import { getPieceType, getMoveCandidatesWithDetour, pieceAt, isInBoard, forwardDelta } from '../systems/Pieces';
+import { getPieceType, getMoveCandidatesWithDetour, filterMoveCandidates, pieceAt, isInBoard, forwardDelta } from '../systems/Pieces';
 import { THEME, hexToRgb } from './theme';
 
 export const BOARD_PADDING = 32;
@@ -483,18 +483,16 @@ export function drawMoveHighlights(
   const sideHex = piece.side === 'player' ? THEME.playerPrimary : THEME.enemyPrimary;
   const sideColor = hexToRgb(sideHex);
   const candidates = getMoveCandidatesWithDetour(piece, config, board);
+  // 共通フィルタ: 自陣壁 / passThrough 通行不可を除外。同陣営の駒で塞がれているマスは楽観的に残す。
+  const filtered = filterMoveCandidates(piece, candidates, board);
 
   p.push();
   p.noStroke();
-  for (const c of candidates) {
+  for (const c of filtered) {
     const occ = pieceAt(board, c.col, c.row);
-    if (occ && occ.side === piece.side) continue;  // 同陣営に塞がれている
-    // passThrough: 経路途中マスが占有されていれば候補から除外
-    if (c.passThrough) {
-      const through = pieceAt(board, c.passThrough.col, c.passThrough.row);
-      if (through) continue;
-    }
-    const isAttack = !!occ;
+    // 同陣営の駒(障害物以外)で塞がれているマスは「条件付き移動」(前駒が動けば追従)→ 移動色で表示
+    const isAlly = !!(occ && occ.side === piece.side);
+    const isAttack = !!occ && !isAlly;
     const x = colToX(c.col);
     const y = rowToY(c.row, boardSize);
     if (isAttack) {
