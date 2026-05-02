@@ -1,4 +1,4 @@
-import type { GameState, Piece, PieceTypeData, AiStrategy, AiDifficulty } from '../types';
+import type { GameState, Piece, PieceTypeData, AiStrategy, AiDifficulty, PieceTypeId } from '../types';
 import { addPiece, emptyPlacementCellsForSide } from './Board';
 
 // 難易度別の購入数(設定画面の AiDifficulty に対応)
@@ -82,6 +82,20 @@ function pickPlacementByStrategy(
   return cells[Math.floor(Math.random() * cells.length)];
 }
 
+// 難易度別の AI 用デフォルト loadout(設定で aiLoadoutPreset が空なら適用)
+function aiDefaultLoadout(difficulty: AiDifficulty): PieceTypeId[] {
+  switch (difficulty) {
+    case 'easy':
+      // 基本駒のみ(シンプル戦術)
+      return ['soldier', 'scout', 'spear', 'heavy'];
+    case 'hard':
+      // 強駒寄り
+      return ['cavalry', 'archer', 'assassin', 'thrower', 'heavy', 'commander', 'catapult'];
+    default:
+      return [];  // normal = 全駒
+  }
+}
+
 // AI のサイクル開始時アクション: 駒を購入して自陣に配置
 export function aiTakeTurn(state: GameState): void {
   const strategy = state.settings.aiStrategy;
@@ -89,10 +103,12 @@ export function aiTakeTurn(state: GameState): void {
     state.settings.aiDifficulty,
     state.config.ai.purchasePerCycle,
   );
-  // loadoutPreset が指定されていれば AI もその範囲内で選ぶ(プレイヤーと同条件)
-  const presetSet = state.settings.loadoutPreset.length > 0
-    ? new Set(state.settings.loadoutPreset)
-    : null;
+  // AI 専用 loadout を適用(空なら難易度デフォルト、それも空なら全駒)
+  let aiLoadout = state.settings.aiLoadoutPreset;
+  if (aiLoadout.length === 0) {
+    aiLoadout = aiDefaultLoadout(state.settings.aiDifficulty);
+  }
+  const presetSet = aiLoadout.length > 0 ? new Set(aiLoadout) : null;
 
   for (let i = 0; i < tries; i++) {
     const affordable = state.config.pieceTypes.filter((t) => {

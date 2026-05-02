@@ -59,6 +59,7 @@ function loadSettings(): GameSettings {
     return {
       aiStrategy: parsed.aiStrategy ?? DEFAULT_SETTINGS.aiStrategy,
       loadoutPreset: parsed.loadoutPreset ?? DEFAULT_SETTINGS.loadoutPreset,
+      aiLoadoutPreset: parsed.aiLoadoutPreset ?? DEFAULT_SETTINGS.aiLoadoutPreset,
       aiDifficulty: parsed.aiDifficulty ?? DEFAULT_SETTINGS.aiDifficulty,
       obstaclePattern: parsed.obstaclePattern ?? DEFAULT_SETTINGS.obstaclePattern,
     };
@@ -173,6 +174,26 @@ function populateLoadoutChecklist(): void {
   updateLoadoutSummary();
 }
 
+// AI 用の駒選択チェックリスト
+function populateAiLoadoutChecklist(): void {
+  const container = document.getElementById('ai-loadout-list');
+  if (!container) return;
+  container.innerHTML = '';
+  const purchasable = config.pieceTypes.filter((t) => t.id !== 'obstacle');
+  for (const type of purchasable) {
+    const label = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.name = 'ai-loadout';
+    cb.value = type.id;
+    // AI 編成は空 = 難易度デフォルト適用なので、空配列ならチェックなし
+    cb.checked = currentSettings.aiLoadoutPreset.includes(type.id);
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(` ${type.symbol} ${type.name} (${type.cost}g)`));
+    container.appendChild(label);
+  }
+}
+
 // 選択数のカウント表示と警告メッセージ
 function updateLoadoutSummary(): void {
   const summaryId = 'loadout-summary';
@@ -210,8 +231,9 @@ function applySettingsToUI(): void {
   setRadio('ai-strategy', currentSettings.aiStrategy);
   setRadio('ai-difficulty', currentSettings.aiDifficulty);
   setRadio('obstacle', currentSettings.obstaclePattern);
-  // チェックボックス(プリセット)
+  // チェックボックス(プレイヤー編成 + AI 編成)
   populateLoadoutChecklist();
+  populateAiLoadoutChecklist();
 }
 
 function setRadio(name: string, value: string): void {
@@ -223,13 +245,26 @@ function readSettingsFromUI(): GameSettings {
   const aiStrategy = (getRadio('ai-strategy') as AiStrategy) ?? DEFAULT_SETTINGS.aiStrategy;
   const aiDifficulty = (getRadio('ai-difficulty') as AiDifficulty) ?? DEFAULT_SETTINGS.aiDifficulty;
   const obstaclePattern = (getRadio('obstacle') as ObstaclePattern) ?? DEFAULT_SETTINGS.obstaclePattern;
+
+  // プレイヤー編成
   const loadoutPreset: PieceTypeId[] = [];
-  const cbs = document.querySelectorAll<HTMLInputElement>('input[name="loadout"]:checked');
-  cbs.forEach((cb) => loadoutPreset.push(cb.value as PieceTypeId));
-  // 全選択 = 空配列(loadoutPreset 未指定扱い)
+  document.querySelectorAll<HTMLInputElement>('input[name="loadout"]:checked').forEach((cb) =>
+    loadoutPreset.push(cb.value as PieceTypeId),
+  );
   const purchasableCount = config.pieceTypes.filter((t) => t.id !== 'obstacle').length;
   const finalPreset = loadoutPreset.length === purchasableCount ? [] : loadoutPreset;
-  return { aiStrategy, aiDifficulty, obstaclePattern, loadoutPreset: finalPreset };
+
+  // AI 編成(空 = 難易度デフォルト)
+  const aiLoadoutPreset: PieceTypeId[] = [];
+  document.querySelectorAll<HTMLInputElement>('input[name="ai-loadout"]:checked').forEach((cb) =>
+    aiLoadoutPreset.push(cb.value as PieceTypeId),
+  );
+  // 全選択は空配列扱い(難易度デフォルトに任せず明示的全駒)とは別の意味なので、
+  // ユーザーが全選択した場合は明示的に loadoutPreset と同じく空に変換するか保留
+  // ここでは「全選択 = 空(デフォルト)」とは扱わず、生のままを返す
+  // 「全解除 = デフォルト適用」を意図しているので、空のままなら難易度別が適用される
+
+  return { aiStrategy, aiDifficulty, obstaclePattern, loadoutPreset: finalPreset, aiLoadoutPreset };
 }
 
 function getRadio(name: string): string | null {

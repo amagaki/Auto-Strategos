@@ -19,7 +19,8 @@ import { getPieceType } from './systems/Pieces';
 // デフォルト設定: 設定画面を経由しなくても "良い感じ" で遊べる値
 export const DEFAULT_SETTINGS: GameSettings = {
   aiStrategy: 'balanced',
-  loadoutPreset: [],   // 空 = 全駒種(購入可能なものすべて)
+  loadoutPreset: [],     // 空 = 全駒種(購入可能なものすべて)
+  aiLoadoutPreset: [],   // 空 = 難易度デフォルト
   aiDifficulty: 'normal',
   obstaclePattern: 'standard',
 };

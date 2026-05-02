@@ -148,8 +148,10 @@ export type ObstaclePattern = 'standard' | 'none' | 'dense';
 
 export interface GameSettings {
   aiStrategy: AiStrategy;
-  // shop に並ぶ駒種(空配列なら全 5 種 + 追加駒すべて)
+  // プレイヤー shop に並ぶ駒種(空配列なら全 9 種)
   loadoutPreset: PieceTypeId[];
+  // AI が使う駒種(空配列なら難易度デフォルトを適用)
+  aiLoadoutPreset: PieceTypeId[];
   aiDifficulty: AiDifficulty;
   obstaclePattern: ObstaclePattern;
 }
