@@ -165,10 +165,44 @@ function populateLoadoutChecklist(): void {
     cb.value = type.id;
     cb.checked = currentSettings.loadoutPreset.length === 0 ||
       currentSettings.loadoutPreset.includes(type.id);
+    cb.addEventListener('change', updateLoadoutSummary);
     label.appendChild(cb);
     label.appendChild(document.createTextNode(` ${type.symbol} ${type.name} (${type.cost}g)`));
     container.appendChild(label);
   }
+  updateLoadoutSummary();
+}
+
+// 選択数のカウント表示と警告メッセージ
+function updateLoadoutSummary(): void {
+  const summaryId = 'loadout-summary';
+  let summary = document.getElementById(summaryId);
+  if (!summary) {
+    summary = document.createElement('div');
+    summary.id = summaryId;
+    summary.style.marginTop = '8px';
+    summary.style.fontSize = '12px';
+    document.getElementById('loadout-list')?.parentElement?.appendChild(summary);
+  }
+  const checked = document.querySelectorAll<HTMLInputElement>('input[name="loadout"]:checked');
+  const total = config.pieceTypes.filter((t) => t.id !== 'obstacle').length;
+  const count = checked.length;
+  let warning = '';
+  let color = '#b8a888';
+  if (count === 0) {
+    warning = ' ⚠️ 最低 1 種類は選択してください(自動的に全選択を適用します)';
+    color = '#ff8888';
+  } else if (count === 1) {
+    warning = ' ⚠️ 駒種 1 種は単調になり、戦術的にプレイヤー有利に偏ります';
+    color = '#ffaa66';
+  } else if (count === 2) {
+    warning = ' ※ 2 種は縛りプレイ寄り。3 種以上推奨';
+    color = '#ddcc88';
+  } else {
+    warning = ' バランス良好';
+    color = '#88cc88';
+  }
+  summary.innerHTML = `<span style="color:#d8c8a8">選択中:</span> <span style="color:#ffd700; font-weight:bold">${count}</span> / ${total}<span style="color:${color}">${warning}</span>`;
 }
 
 function applySettingsToUI(): void {

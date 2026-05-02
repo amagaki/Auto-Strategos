@@ -85,9 +85,9 @@ export function moveGridHtml(moveStyle: string, attackRange: string): string {
   // 射程バッジ: rangedForward は「射程 2」を明記、spearReach は「横払い」を明記
   let rangedBadge = '';
   if (attackRange === 'rangedForward') {
-    rangedBadge = '<span class="ranged-badge" title="遠距離攻撃 2 マス">⤴ 射2</span>';
+    rangedBadge = '<span class="ranged-badge" title="遠距離攻撃 2 マス">⤴ 射程2</span>';
   } else if (attackRange === 'spearReach') {
-    rangedBadge = '<span class="ranged-badge" title="前 + 横にも攻撃可能">↔</span>';
+    rangedBadge = '<span class="ranged-badge" title="前 + 横にも攻撃可能">↔ 横払い</span>';
   }
   let rows: string[];
   switch (moveStyle) {
