@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto-Strategos / 進軍型オートストラテジー</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1a1410;
+      font-family: sans-serif;
+      color: #f0e6d0;
+      min-height: 100vh;
+    }
+    canvas { display: block; }
+
+    /* 画面切替の基盤 */
+    .screen {
+      display: none;
+      min-height: 100vh;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .screen.active { display: flex; }
+
+    /* タイトル / 設定 / リザルト 用の中央ボックス */
+    .screen-content {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 36px;
+      background: linear-gradient(145deg, #3a2a1a, #2a1a0a);
+      border: 2px solid #c9a86a;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      box-sizing: border-box;
+    }
+
+    /* === タイトル画面 === */
+    #screen-title.active {
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #screen-title .screen-content { text-align: center; padding: 48px 36px; }
+    .game-title {
+      font-size: 56px;
+      color: #ffd700;
+      margin: 0 0 8px;
+      letter-spacing: 2px;
+      text-shadow: 0 2px 12px rgba(255, 215, 0, 0.3);
+    }
+    .game-subtitle { color: #d8c8a8; font-size: 18px; margin: 0 0 36px; }
+    .title-actions { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+    .title-actions button { min-width: 240px; }
+
+    /* === 設定画面 === */
+    #screen-settings.active {
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 16px;
+      overflow-y: auto;
+    }
+    #screen-settings .screen-content { max-width: 640px; }
+    #screen-settings h2 { color: #ffd700; margin: 0 0 20px; }
+    .setting-group {
+      border: 1px solid #5a4a3a;
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+    .setting-group legend { color: #ffd700; font-weight: bold; padding: 0 8px; }
+    .setting-group label {
+      display: block;
+      padding: 4px 0;
+      cursor: pointer;
+      line-height: 1.5;
+    }
+    .setting-group label:hover { color: #ffd700; }
+    .setting-group input[type="radio"],
+    .setting-group input[type="checkbox"] {
+      margin-right: 8px;
+      accent-color: #c9a86a;
+    }
+    .setting-group .setting-desc {
+      color: #b8a888;
+      font-size: 11px;
+      margin-left: 24px;
+    }
+    .loadout-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 6px;
+    }
+    .loadout-list label {
+      background: rgba(40, 30, 20, 0.5);
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .settings-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .settings-actions button { flex: 1; min-width: 120px; }
+
+    /* === リザルト画面 === */
+    #screen-result.active {
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #screen-result .screen-content { text-align: center; padding: 36px 36px; min-width: 360px; }
+    .result-title {
+      font-size: 56px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .result-title.win { color: #ffd700; }
+    .result-title.lose { color: #ff8888; }
+    .result-title.draw { color: #d8d8d8; }
+    .result-subtitle { color: #d8c8a8; font-size: 16px; margin-bottom: 24px; }
+    .result-stats {
+      display: flex;
+      gap: 18px;
+      justify-content: center;
+      margin-bottom: 28px;
+      color: #d8c8a8;
+      flex-wrap: wrap;
+    }
+    .result-stats > div {
+      background: rgba(40, 30, 20, 0.5);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .result-stats .label { color: #b8a888; font-size: 11px; display: block; margin-bottom: 2px; }
+    .result-stats .value { color: #ffd700; font-weight: bold; font-size: 18px; }
+    .result-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+    /* === 共通ボタン === */
+    .btn-primary {
+      background: #c9a86a;
+      color: #2a1a0a;
+      border: 2px solid #f0e6d0;
+      padding: 12px 28px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 6px;
+      font-family: sans-serif;
+    }
+    .btn-primary:hover { background: #ffd700; }
+    .btn-primary:disabled { background: #6a5a3a; color: #998866; cursor: not-allowed; }
+    .btn-secondary {
+      background: #5a4a3a;
+      color: #f0e6d0;
+      border: 1px solid #7a6a5a;
+      padding: 12px 22px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 6px;
+      font-family: sans-serif;
+    }
+    .btn-secondary:hover { background: #7a6a5a; }
+    .btn-tertiary {
+      background: transparent;
+      color: #c9a86a;
+      border: 1px solid #5a4a3a;
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 6px;
+      font-family: sans-serif;
+    }
+    .btn-tertiary:hover { background: rgba(201, 168, 106, 0.15); }
+
+    /* === ゲーム画面(既存レイアウト) === */
+    #screen-game.active {
+      flex-direction: column;
+    }
+    .page-container {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 10px;
+      padding: 8px;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .board-section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: stretch;
+    }
+
+    .ui-panel {
+      background: rgba(40, 30, 20, 0.92);
+      color: #f0e6d0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      user-select: none;
+    }
+
+    /* HUD: 横並び、canvas の上に(コンパクト) */
+    #hud-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 4px 12px;
+      flex-wrap: wrap;
+    }
+    #hud-top .row { display: flex; align-items: center; gap: 4px; }
+    #hud-top .gold { color: #ffd700; font-weight: bold; }
+    #hud-top .reach-self { color: #88c8ff; font-weight: bold; }
+    #hud-top .reach-enemy { color: #ff8888; font-weight: bold; }
+    #hud-top .spacer { flex: 1; }
+    #help-btn, #title-btn-game {
+      background: #5a4a3a;
+      color: #f0e6d0;
+      border: 1px solid #7a6a5a;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      border-radius: 50%;
+      font-weight: bold;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    #help-btn:hover, #title-btn-game:hover { background: #7a6a5a; }
+
+    .canvas-wrap { position: relative; }
+
+    /* shop panel */
+    #shop-panel {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      justify-content: center;
+    }
+    .shop-card {
+      width: 92px;
+      height: 108px;
+      background: rgba(60, 50, 35, 0.95);
+      border: 2px solid #6a5a3a;
+      border-radius: 6px;
+      padding: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.1s, border-color 0.1s;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .shop-card:hover { transform: translateY(-4px); border-color: #ffd700; }
+    .shop-card.selected { border-color: #ffd700; background: rgba(80, 65, 40, 0.95); }
+    .shop-card.unaffordable { opacity: 0.45; cursor: not-allowed; }
+    .shop-card .card-name { font-weight: bold; color: #ffd700; font-size: 12px; }
+    .shop-card .move-grid {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 22px;
+    }
+    .shop-card .move-grid .grid-rows { display: flex; flex-direction: column; gap: 0px; line-height: 1; }
+    .shop-card .move-grid .grid-row { letter-spacing: 3px; font-size: 12px; color: #d8c8a8; }
+    .shop-card .move-grid .ranged-badge { font-size: 14px; color: #c8a8e8; }
+    .shop-card .card-stats { display: flex; justify-content: space-around; font-size: 12px; font-weight: bold; }
+    .shop-card .stat-hp { color: #ff8090; }
+    .shop-card .stat-atk { color: #e8d8b0; }
+    .shop-card .card-cost { color: #ffd700; font-weight: bold; font-size: 12px; margin-top: auto; }
+
+    #go-btn {
+      background: #c9a86a;
+      color: #2a1a0a;
+      border: 2px solid #f0e6d0;
+      padding: 8px 22px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: sans-serif;
+    }
+    #go-btn:hover { background: #ffd700; }
+    #go-btn:disabled { background: #6a5a3a; color: #998866; cursor: not-allowed; }
+
+    #reroll-btn {
+      background: #8a6a4a;
+      color: #f0e6d0;
+      border: 1px solid #c9a86a;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-left: 4px;
+    }
+    #reroll-btn:hover { background: #a88a5a; }
+
+    /* legend panel */
+    #legend-panel {
+      width: 220px;
+      padding: 10px 12px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      box-sizing: border-box;
+      align-self: flex-start;
+    }
+    #legend-panel .legend-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #5a4a3a;
+    }
+    #legend-panel .legend-title { font-weight: bold; color: #ffd700; font-size: 13px; }
+    #legend-panel #legend-toggle {
+      background: #5a4a3a;
+      color: #f0e6d0;
+      border: 1px solid #7a6a5a;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+    #legend-panel #legend-toggle:hover { background: #7a6a5a; }
+    #legend-panel.collapsed { width: auto; }
+    #legend-panel.collapsed .legend-body,
+    #legend-panel.collapsed .legend-hint { display: none; }
+
+    #legend-panel .legend-item {
+      display: grid;
+      grid-template-columns: 26px 1fr auto;
+      gap: 6px;
+      align-items: center;
+      padding: 4px;
+      margin-bottom: 4px;
+      background: rgba(40, 30, 20, 0.5);
+      border-radius: 3px;
+    }
+    #legend-panel .li-symbol { font-size: 16px; font-weight: bold; color: #ffd700; text-align: center; }
+    #legend-panel .li-info { display: flex; flex-direction: column; gap: 2px; }
+    #legend-panel .li-name { color: #e8d8b0; font-size: 11px; }
+    #legend-panel .li-grid {
+      font-size: 11px;
+      letter-spacing: 2px;
+      line-height: 1.1;
+      color: #c8b8a0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    #legend-panel .li-grid .grid-rows { line-height: 1; }
+    #legend-panel .li-grid .grid-row { letter-spacing: 2px; font-size: 11px; }
+    #legend-panel .li-grid .ranged-badge { font-size: 13px; color: #c8a8e8; }
+    #legend-panel .li-grid-static { color: #888; }
+    #legend-panel .li-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      font-size: 10px;
+      text-align: right;
+      min-width: 36px;
+    }
+    #legend-panel .li-stats .hp { color: #ff8090; font-weight: bold; }
+    #legend-panel .li-stats .atk { color: #e8d8b0; font-weight: bold; }
+    #legend-panel .li-stats .atk-na { color: #888; }
+    #legend-panel .li-stats .cost { color: #ffd700; font-weight: bold; }
+
+    #legend-panel .legend-hint {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid #5a4a3a;
+      font-size: 11px;
+      color: #b8a888;
+      line-height: 1.5;
+    }
+    #legend-panel .legend-hint b { color: #f0e6d0; }
+
+    /* tutorial modal (任意の画面で開ける) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-content {
+      background: linear-gradient(145deg, #3a2a1a, #2a1a0a);
+      padding: 28px 32px;
+      border-radius: 12px;
+      border: 2px solid #c9a86a;
+      max-width: 640px;
+      max-height: 85vh;
+      overflow-y: auto;
+      color: #f0e6d0;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+    .modal-content h2 { color: #ffd700; margin-top: 0; margin-bottom: 12px; font-size: 22px; }
+    .modal-content h3 { color: #ffd700; margin-top: 18px; margin-bottom: 6px; font-size: 15px; }
+    .modal-content p { line-height: 1.7; margin: 4px 0; }
+    .modal-content ol, .modal-content ul { padding-left: 20px; line-height: 1.7; }
+    .modal-content li b { color: #ffd700; }
+    .modal-content .modal-actions { display: flex; justify-content: center; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <!-- ======================== タイトル画面 ======================== -->
+  <section class="screen" id="screen-title">
+    <div class="screen-content">
+      <h1 class="game-title">Auto-Strategos</h1>
+      <p class="game-subtitle">進軍型オートストラテジー</p>
+      <div class="title-actions">
+        <button class="btn-primary" id="title-quickstart">すぐ始める</button>
+        <button class="btn-secondary" id="title-settings">ゲーム設定</button>
+        <button class="btn-tertiary" id="title-help">遊び方</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== 設定画面 ======================== -->
+  <section class="screen" id="screen-settings">
+    <div class="screen-content">
+      <h2>ゲーム設定</h2>
+
+      <fieldset class="setting-group">
+        <legend>AI 戦略</legend>
+        <label><input type="radio" name="ai-strategy" value="balanced" checked> バランス(中庸)</label>
+        <label><input type="radio" name="ai-strategy" value="aggressive"> 攻め寄り(機動火力重視)</label>
+        <label><input type="radio" name="ai-strategy" value="defensive"> 守り寄り(耐久遠距離重視)</label>
+      </fieldset>
+
+      <fieldset class="setting-group">
+        <legend>AI 難易度</legend>
+        <label><input type="radio" name="ai-difficulty" value="easy"> やさしい(初期金 3 / 1 駒・サイクル)</label>
+        <label><input type="radio" name="ai-difficulty" value="normal" checked> ふつう(初期金 5 / 2 駒・サイクル)</label>
+        <label><input type="radio" name="ai-difficulty" value="hard"> むずかしい(初期金 7 / 3 駒・サイクル)</label>
+      </fieldset>
+
+      <fieldset class="setting-group">
+        <legend>障害物パターン</legend>
+        <label><input type="radio" name="obstacle" value="standard" checked> 標準(row 2 / row 5 に各 4 マス)</label>
+        <label><input type="radio" name="obstacle" value="none"> なし(全マス通行可)</label>
+        <label><input type="radio" name="obstacle" value="dense"> 多め(分散配置 12 マス)</label>
+      </fieldset>
+
+      <fieldset class="setting-group">
+        <legend>出撃編成 — shop に並ぶ駒種(全選択 = 全駒)</legend>
+        <div class="loadout-list" id="loadout-list">
+          <!-- populated by JS -->
+        </div>
+      </fieldset>
+
+      <div class="settings-actions">
+        <button class="btn-secondary" id="settings-back">タイトルに戻る</button>
+        <button class="btn-tertiary" id="settings-reset">デフォルト</button>
+        <button class="btn-primary" id="settings-start">この設定で開始</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== ゲーム画面 ======================== -->
+  <section class="screen" id="screen-game">
+    <div class="page-container">
+      <div class="board-section">
+        <div id="hud-top" class="ui-panel">
+          <div class="row">サイクル: <span id="hud-cycle">1</span></div>
+          <div class="row">所持金: <span class="gold" id="hud-gold">5</span> g</div>
+          <div class="row">自陣到達: <span class="reach-self" id="hud-reach-self">0</span> / 3</div>
+          <div class="row">敵陣到達: <span class="reach-enemy" id="hud-reach-enemy">0</span> / 3</div>
+          <div class="spacer"></div>
+          <button id="title-btn-game" title="タイトルへ戻る">⌂</button>
+          <button id="help-btn" title="ルール解説">?</button>
+        </div>
+
+        <div class="canvas-wrap">
+          <div id="app"></div>
+        </div>
+
+        <div id="shop-panel" class="ui-panel">
+          <div id="shop-cards" style="display: flex; gap: 8px;"></div>
+          <button id="reroll-btn">リロール (1g)</button>
+          <button id="go-btn">Go &gt;</button>
+        </div>
+      </div>
+
+      <div id="legend-panel" class="ui-panel">
+        <div class="legend-header">
+          <span class="legend-title">駒 凡例</span>
+          <button id="legend-toggle" title="凡例の表示/非表示">−</button>
+        </div>
+        <div class="legend-body" id="legend-body"></div>
+        <div class="legend-hint">
+          <b>shop</b> で駒選択 → 自陣に<b>配置</b><br>
+          駒<b>ホバー</b> = 動ける範囲 + 3 ターン予測<br>
+          <b>[Go]</b> で 3 ターン自動進行<br>
+          <span style="color: #888">自陣の壁(■)は同盟扱い</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== リザルト画面 ======================== -->
+  <section class="screen" id="screen-result">
+    <div class="screen-content">
+      <div class="result-title" id="result-title-screen">勝利</div>
+      <div class="result-subtitle" id="result-subtitle-screen"></div>
+      <div class="result-stats" id="result-stats-screen">
+        <div>
+          <span class="label">サイクル数</span>
+          <span class="value" id="rs-cycles">0</span>
+        </div>
+        <div>
+          <span class="label">自陣到達</span>
+          <span class="value" id="rs-reach-self">0</span>
+        </div>
+        <div>
+          <span class="label">敵陣到達</span>
+          <span class="value" id="rs-reach-enemy">0</span>
+        </div>
+        <div>
+          <span class="label">撃破した敵</span>
+          <span class="value" id="rs-player-kills">0</span>
+        </div>
+      </div>
+      <div class="result-actions">
+        <button class="btn-primary" id="result-restart">同じ設定で再戦</button>
+        <button class="btn-secondary" id="result-title-btn">タイトルへ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== チュートリアルモーダル ======================== -->
+  <div id="tutorial-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>Auto-Strategos の遊び方</h2>
+
+      <h3>🎯 目的</h3>
+      <p>あなたの駒を <b>敵陣最奥</b>(画面上端)に <b>3 体到達</b> させて勝利。<br>
+      逆に敵駒に <b>自陣最奥</b>(画面下端)に 3 体到達されたら敗北。</p>
+
+      <h3>🎮 1 サイクルの流れ</h3>
+      <ol>
+        <li>下の <b>shop</b> で駒のカードをクリック → 選択</li>
+        <li>盤面の <b>自陣青背景マス</b>(下 2 行)をクリック → 配置 + 所持金消費</li>
+        <li>必要なら他の駒も購入・配置(リロール 1g で shop 入替)</li>
+        <li><b>[Go &gt;]</b> ボタンで <b>3 ターン</b> 自動進行</li>
+        <li>全駒が動き、衝突したら自動戦闘</li>
+        <li>次サイクルへ(基本収入 +3g + 利息)</li>
+      </ol>
+
+      <h3>💡 コツ</h3>
+      <ul>
+        <li>駒に <b>マウスホバー</b> で動ける先のセルがハイライト</li>
+        <li>同じホバーで <b>3 ターン先の予測経路</b> も矢印で表示</li>
+        <li>右の <b>凡例パネル</b> で各駒の能力を確認できる</li>
+        <li>自陣の壁(<b>■</b>)は同盟扱い、攻撃しない</li>
+        <li>敵陣の壁は破壊して進む必要あり(HP 3)</li>
+        <li>5+ 駒それぞれ動き方・HP・攻撃力が違う(凡例参照)</li>
+        <li>弓兵は遠距離攻撃あり(味方に遮られると不発)</li>
+      </ul>
+
+      <p style="margin-top: 16px; color: #b8a888;">
+        この説明はゲーム画面の <b>「?」ボタン</b> や、タイトル画面の <b>「遊び方」</b> から再表示できます。
+      </p>
+
+      <div class="modal-actions">
+        <button id="tutorial-close" class="btn-primary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

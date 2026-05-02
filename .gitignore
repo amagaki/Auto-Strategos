@@ -1,0 +1,19 @@
+# Claude Code セッション固有ファイル
+.claude/
+
+# Node modules
+node_modules/
+
+# Vite ビルド出力
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# エディタ
+.vscode/
+.idea/
+
+# ログ
+*.log

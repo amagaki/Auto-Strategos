@@ -1,0 +1,92 @@
+{
+  "pieceTypes": [
+    {
+      "id": "soldier",
+      "name": "兵士",
+      "symbol": "歩",
+      "color": "#a8c8e8",
+      "attack": 1,
+      "hp": 2,
+      "cost": 1,
+      "moveStyle": "forwardWithDiag",
+      "attackRange": "forwardWithDiag"
+    },
+    {
+      "id": "scout",
+      "name": "斥候",
+      "symbol": "斥",
+      "color": "#a8e8c8",
+      "attack": 1,
+      "hp": 1,
+      "cost": 2,
+      "moveStyle": "diagonalOnly",
+      "attackRange": "forwardWithDiag"
+    },
+    {
+      "id": "cavalry",
+      "name": "騎兵",
+      "symbol": "騎",
+      "color": "#e8c8a8",
+      "attack": 2,
+      "hp": 2,
+      "cost": 4,
+      "moveStyle": "cavalry",
+      "attackRange": "forwardWithDiag"
+    },
+    {
+      "id": "archer",
+      "name": "弓兵",
+      "symbol": "弓",
+      "color": "#c8a8e8",
+      "attack": 2,
+      "hp": 1,
+      "cost": 5,
+      "moveStyle": "forwardWithDiag",
+      "attackRange": "rangedForward"
+    },
+    {
+      "id": "heavy",
+      "name": "重装兵",
+      "symbol": "重",
+      "color": "#e8a8a8",
+      "attack": 1,
+      "hp": 5,
+      "cost": 6,
+      "moveStyle": "forwardOnlyHeavy",
+      "attackRange": "forwardWithDiag"
+    },
+    {
+      "id": "obstacle",
+      "name": "障害物",
+      "symbol": "■",
+      "color": "#7a6a5a",
+      "attack": 0,
+      "hp": 3,
+      "cost": 0,
+      "moveStyle": "stationary",
+      "attackRange": "none"
+    }
+  ],
+  "economy": {
+    "initialGold": 5,
+    "incomePerCycle": 3,
+    "interestRate": 0.10,
+    "interestCap": 5,
+    "rerollCost": 1
+  },
+  "shop": {
+    "offerCount": 4
+  },
+  "rules": {
+    "boardSize": 8,
+    "advanceTurnsPerCycle": 3,
+    "reachToWin": 3,
+    "placementMaxRow": 1
+  },
+  "ai": {
+    "purchasePerCycle": 2
+  },
+  "render": {
+    "msPerAnimationStep": 700
+  }
+}
