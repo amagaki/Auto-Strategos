@@ -82,18 +82,29 @@ function pickPlacementByStrategy(
   return cells[Math.floor(Math.random() * cells.length)];
 }
 
-// 難易度別の AI 用デフォルト loadout(設定で aiLoadoutPreset が空なら適用)
-function aiDefaultLoadout(difficulty: AiDifficulty): PieceTypeId[] {
-  switch (difficulty) {
-    case 'easy':
-      // 基本駒のみ(シンプル戦術)
-      return ['soldier', 'scout', 'spear', 'heavy'];
-    case 'hard':
-      // 強駒寄り
-      return ['cavalry', 'archer', 'assassin', 'thrower', 'heavy', 'commander', 'catapult'];
-    default:
-      return [];  // normal = 全駒
+// AI 推奨 loadout: 戦略 + 難易度 の組合せで適切な駒種を返す
+//   設定画面で「デフォルト」として表示される値
+//   ユーザーが手動チェックを変更すれば、その内容が aiLoadoutPreset に保存される
+export function aiSuggestedLoadout(strategy: AiStrategy, difficulty: AiDifficulty): PieceTypeId[] {
+  if (difficulty === 'easy') {
+    if (strategy === 'aggressive') return ['soldier', 'scout', 'cavalry', 'spear'];
+    if (strategy === 'defensive') return ['soldier', 'spear', 'heavy', 'archer'];
+    return ['soldier', 'scout', 'spear', 'heavy'];
   }
+  if (difficulty === 'normal') {
+    if (strategy === 'aggressive') return ['soldier', 'scout', 'cavalry', 'assassin', 'thrower', 'spear', 'heavy'];
+    if (strategy === 'defensive') return ['soldier', 'spear', 'heavy', 'archer', 'commander', 'catapult', 'cavalry'];
+    return ['soldier', 'scout', 'cavalry', 'archer', 'heavy', 'spear', 'assassin', 'thrower', 'commander', 'catapult'];
+  }
+  // hard
+  if (strategy === 'aggressive') return ['soldier', 'scout', 'cavalry', 'assassin', 'thrower', 'archer', 'spear', 'heavy'];
+  if (strategy === 'defensive') return ['heavy', 'archer', 'spear', 'commander', 'catapult', 'thrower', 'soldier', 'cavalry'];
+  return ['soldier', 'scout', 'cavalry', 'archer', 'heavy', 'spear', 'assassin', 'thrower', 'commander', 'catapult'];
+}
+
+// 旧 API 互換(難易度のみベース、戦略は balanced と見なす)
+function aiDefaultLoadout(difficulty: AiDifficulty): PieceTypeId[] {
+  return aiSuggestedLoadout('balanced', difficulty);
 }
 
 // AI のサイクル開始時アクション: 駒を購入して自陣に配置

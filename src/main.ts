@@ -185,23 +185,43 @@ function populateLoadoutChecklist(): void {
 }
 
 // AI 用の駒選択チェックリスト
+//   AI loadout が空配列なら戦略+難易度の推奨セットを適用してチェック
+//   非空ならその値を尊重(ユーザー手動編集を保持)
+import { aiSuggestedLoadout } from './systems/AI';
+
 function populateAiLoadoutChecklist(): void {
   const container = document.getElementById('ai-loadout-list');
   if (!container) return;
   container.innerHTML = '';
   const purchasable = config.pieceTypes.filter((t) => t.id !== 'obstacle');
+  // チェック対象: 保存済みリストが非空ならそれ、空なら推奨セット
+  const checkSet = currentSettings.aiLoadoutPreset.length > 0
+    ? new Set(currentSettings.aiLoadoutPreset)
+    : new Set(aiSuggestedLoadout(currentSettings.aiStrategy, currentSettings.aiDifficulty));
   for (const type of purchasable) {
     const label = document.createElement('label');
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.name = 'ai-loadout';
     cb.value = type.id;
-    // AI 編成は空 = 難易度デフォルト適用なので、空配列ならチェックなし
-    cb.checked = currentSettings.aiLoadoutPreset.includes(type.id);
+    cb.checked = checkSet.has(type.id);
     label.appendChild(cb);
     label.appendChild(document.createTextNode(` ${type.symbol} ${pieceName(type.id)} (${type.cost}g)`));
     container.appendChild(label);
   }
+}
+
+// AI 戦略 / 難易度の変更時に AI ロードアウトを推奨セットに更新
+function refreshAiLoadoutFromStrategyDifficulty(): void {
+  const strategy = (getRadio('ai-strategy') as AiStrategy) ?? DEFAULT_SETTINGS.aiStrategy;
+  const difficulty = (getRadio('ai-difficulty') as AiDifficulty) ?? DEFAULT_SETTINGS.aiDifficulty;
+  const suggested = aiSuggestedLoadout(strategy, difficulty);
+  const set = new Set(suggested);
+  document.querySelectorAll<HTMLInputElement>('input[name="ai-loadout"]').forEach((cb) => {
+    cb.checked = set.has(cb.value as PieceTypeId);
+  });
+  // 一時的に保存も更新(start で保存される)
+  currentSettings.aiLoadoutPreset = suggested;
 }
 
 // 選択数のカウント表示と警告メッセージ
@@ -518,6 +538,11 @@ function bindUiButtons(): void {
   document.getElementById('settings-reset')?.addEventListener('click', () => {
     currentSettings = { ...DEFAULT_SETTINGS };
     applySettingsToUI();
+  });
+
+  // AI 戦略 / 難易度のラジオ変更時、AI ロードアウトを推奨に更新
+  document.querySelectorAll<HTMLInputElement>('input[name="ai-strategy"], input[name="ai-difficulty"]').forEach((r) => {
+    r.addEventListener('change', refreshAiLoadoutFromStrategyDifficulty);
   });
   document.getElementById('settings-start')?.addEventListener('click', () => {
     currentSettings = readSettingsFromUI();
