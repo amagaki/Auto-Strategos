@@ -84,6 +84,36 @@ export function getMoveCandidates(piece: Piece, config: GameConfig): MoveCandida
   return candidates.filter((c) => isInBoard(c.col, c.row, config.rules.boardSize));
 }
 
+// 自陣壁迂回を加味した移動候補
+//   forwardOnlyHeavy 駒(重装兵・槍兵・投石兵・指揮官・投石機)について、
+//   前 1 マスが自陣の壁(同 side の obstacle)で塞がれている場合のみ斜め前 1 マスを候補に追加。
+//   通常時は getMoveCandidates と同じ。
+//   chooseAction とホバー予測ハイライトの両方から呼ばれ、決定論性を保つ。
+export function getMoveCandidatesWithDetour(
+  piece: Piece,
+  config: GameConfig,
+  board: BoardState,
+): MoveCandidate[] {
+  const candidates = getMoveCandidates(piece, config);
+  const type = getPieceType(config, piece.typeId);
+  if (type.moveStyle !== 'forwardOnlyHeavy') return candidates;
+  const dy = forwardDelta(piece.side);
+  const fwdRow = piece.row + dy;
+  const blocker = pieceAt(board, piece.col, fwdRow);
+  if (!blocker || blocker.side !== piece.side || blocker.typeId !== 'obstacle') {
+    return candidates;
+  }
+  // 自陣壁で塞がれている → 斜め前 1 マス × 2 を候補に追加
+  const extra: MoveCandidate[] = [];
+  for (const dx of [-1, 1] as const) {
+    const c = piece.col + dx;
+    const r = fwdRow;
+    if (!isInBoard(c, r, config.rules.boardSize)) continue;
+    extra.push({ col: c, row: r, kind: 'diag' });
+  }
+  return [...candidates, ...extra];
+}
+
 // 槍兵の横攻撃マス(動かずに攻撃できる横 1 マス)
 //   spearReach 攻撃範囲のうち、移動候補にカバーされない「横」マスのみ返す
 export function getSpearSideAttackCells(

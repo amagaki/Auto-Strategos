@@ -9,7 +9,7 @@ import type {
 import {
   forwardDelta,
   forwardProgress,
-  getMoveCandidates,
+  getMoveCandidatesWithDetour,
   getPieceType,
   getSpearSideAttackCells,
   isInBoard,
@@ -124,7 +124,7 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
     }
   }
 
-  const candidates = getMoveCandidates(piece, config);
+  const candidates = getMoveCandidatesWithDetour(piece, config, board);
   // 味方で塞がれたマス、または passThrough の途中マスが占有されている場合は除外
   const filtered = candidates.filter((c) => {
     const occ = pieceAt(board, c.col, c.row);

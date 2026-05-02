@@ -1,6 +1,6 @@
 import type p5 from 'p5';
 import type { Piece, PieceTypeData, GameConfig, GameState, BoardState } from '../types';
-import { getPieceType, getMoveCandidates, pieceAt, isInBoard, forwardDelta } from '../systems/Pieces';
+import { getPieceType, getMoveCandidatesWithDetour, pieceAt, isInBoard, forwardDelta } from '../systems/Pieces';
 import { THEME, hexToRgb } from './theme';
 
 export const BOARD_PADDING = 32;
@@ -482,7 +482,7 @@ export function drawMoveHighlights(
 
   const sideHex = piece.side === 'player' ? THEME.playerPrimary : THEME.enemyPrimary;
   const sideColor = hexToRgb(sideHex);
-  const candidates = getMoveCandidates(piece, config);
+  const candidates = getMoveCandidatesWithDetour(piece, config, board);
 
   p.push();
   p.noStroke();
