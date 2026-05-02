@@ -93,15 +93,15 @@ export function moveGridHtml(moveStyle: string, attackRange: string, support?: s
   if (attackRange === 'rangedForward') {
     rangedBadge = '<span class="ranged-badge" title="遠距離攻撃 2 マス">⤴ 射程2</span>';
   } else if (attackRange === 'longRanged') {
-    rangedBadge = '<span class="ranged-badge" title="超遠距離攻撃 3 マス">⤴ 射程3</span>';
+    rangedBadge = '<span class="ranged-badge" title="前方扇射程 (距離1で5列, 距離2で3列, 距離3で1列)">⤴ 扇射程3</span>';
   } else if (attackRange === 'spearReach') {
     rangedBadge = '<span class="ranged-badge" title="前 + 横にも攻撃可能">↔ 横払い</span>';
   }
   // 支援バッジ
   if (support === 'spawn_adjacent_soldier') {
-    rangedBadge += '<span class="ranged-badge" title="サイクル開始時に隣接マスに兵士を生成" style="background:rgba(216,192,104,0.4); border-color:#b89968; color:#6a4818">＋兵士</span>';
+    rangedBadge += '<span class="ranged-badge" title="毎ターン (移動後) に隣接空マスへ兵士を生成" style="background:rgba(216,192,104,0.4); border-color:#b89968; color:#6a4818">＋兵士</span>';
   } else if (support === 'random_enemy_damage') {
-    rangedBadge += '<span class="ranged-badge" title="サイクル開始時にランダム敵に1ダメージ" style="background:rgba(138,112,80,0.4); border-color:#8a7050; color:#3a2c1c">△投石</span>';
+    rangedBadge += '<span class="ranged-badge" title="毎ターン (移動後) にランダムな敵駒へ 1 ダメージ" style="background:rgba(138,112,80,0.4); border-color:#8a7050; color:#3a2c1c">△投石</span>';
   }
   let rows: string[];
   switch (moveStyle) {

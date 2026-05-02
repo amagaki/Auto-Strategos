@@ -40,7 +40,7 @@
       "color": "#c8a8e8",
       "attack": 2,
       "hp": 1,
-      "cost": 5,
+      "cost": 4,
       "moveStyle": "forwardWithDiag",
       "attackRange": "rangedForward"
     },
@@ -51,7 +51,7 @@
       "color": "#e8a8a8",
       "attack": 1,
       "hp": 5,
-      "cost": 6,
+      "cost": 5,
       "moveStyle": "forwardOnlyHeavy",
       "attackRange": "forwardWithDiag"
     },

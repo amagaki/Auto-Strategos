@@ -505,13 +505,12 @@ export function drawMoveHighlights(
     p.rect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8, 8);
   }
 
-  // 遠距離攻撃ハイライト(味方で遮られたら停止)
-  //   弓兵 (rangedForward): 1〜2 マス
-  //   投石兵 (longRanged): 1〜3 マス
-  if (type.attackRange === 'rangedForward' || type.attackRange === 'longRanged') {
-    const maxDist = type.attackRange === 'longRanged' ? 3 : 2;
+  // 遠距離攻撃ハイライト(味方で遮られたら以降不可)
+  //   弓兵 (rangedForward): 正面 2 マス
+  //   投石兵 (longRanged): 前方扇 9 マス(距離 1 で 5 列、距離 2 で 3 列、距離 3 で 1 列)
+  if (type.attackRange === 'rangedForward') {
     const dy = forwardDelta(piece.side);
-    for (let dist = 1; dist <= maxDist; dist++) {
+    for (let dist = 1; dist <= 2; dist++) {
       const col = piece.col;
       const row = piece.row + dist * dy;
       if (!isInBoard(col, row, boardSize)) break;
@@ -529,6 +528,43 @@ export function drawMoveHighlights(
       } else {
         p.fill(200, 120, 220, 55);
         p.rect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12, 6);
+      }
+    }
+  } else if (type.attackRange === 'longRanged') {
+    const dy = forwardDelta(piece.side);
+    const lanesByDist: Record<number, number[]> = {
+      1: [-2, -1, 0, 1, 2],
+      2: [-1, 0, 1],
+      3: [0],
+    };
+    const blocked = new Set<number>();
+    for (let dist = 1; dist <= 3; dist++) {
+      for (const dx of lanesByDist[dist]) {
+        if (blocked.has(dx)) continue;
+        const col = piece.col + dx;
+        const row = piece.row + dist * dy;
+        if (!isInBoard(col, row, boardSize)) {
+          blocked.add(dx);
+          continue;
+        }
+        const occ = pieceAt(board, col, row);
+        if (occ && occ.side === piece.side) {
+          blocked.add(dx);
+          continue;
+        }
+        const x = colToX(col);
+        const y = rowToY(row, boardSize);
+        if (occ) {
+          p.noFill();
+          p.stroke(200, 120, 220, 220);
+          p.strokeWeight(3);
+          p.rect(x + 8, y + 8, CELL_SIZE - 16, CELL_SIZE - 16, 6);
+          p.noStroke();
+          blocked.add(dx);
+        } else {
+          p.fill(200, 120, 220, 55);
+          p.rect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12, 6);
+        }
       }
     }
   }

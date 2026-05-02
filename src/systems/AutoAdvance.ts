@@ -39,25 +39,60 @@ function recordKill(state: GameState, attacker: Piece, victim: Piece): void {
   }
 }
 
-// 遠距離攻撃: 前方を順に走査、最初に出会った敵が対象。味方で遮られたら不発。
-//   弓兵 (rangedForward): 前 2 マス
-//   投石兵 (longRanged): 前 3 マス
+// 遠距離攻撃: 距離優先で最も近い敵を取る。各列は独立に味方で遮蔽。
+//   弓兵 (rangedForward): 正面のみ、距離 2
+//   投石兵 (longRanged): 前方三角形扇 9 マス
+//     距離 1: dx ∈ {-2, -1, 0, 1, 2}
+//     距離 2: dx ∈ {-1, 0, 1}
+//     距離 3: dx ∈ {0}
+//   同距離内では正面 → 左 → 右 の順で決定論的に選択
 function findRangedTarget(piece: Piece, board: BoardState, config: GameConfig): Piece | null {
   const type = getPieceType(config, piece.typeId);
-  let maxDist: number;
-  if (type.attackRange === 'rangedForward') maxDist = 2;
-  else if (type.attackRange === 'longRanged') maxDist = 3;
-  else return null;
   const dy = forwardDelta(piece.side);
-  for (let dist = 1; dist <= maxDist; dist++) {
-    const col = piece.col;
-    const row = piece.row + dist * dy;
-    if (!isInBoard(col, row, config.rules.boardSize)) break;
-    const occupant = pieceAt(board, col, row);
-    if (!occupant) continue;
-    if (occupant.side === piece.side) return null;  // 味方で遮られる
-    return occupant;
+
+  if (type.attackRange === 'rangedForward') {
+    for (let dist = 1; dist <= 2; dist++) {
+      const col = piece.col;
+      const row = piece.row + dist * dy;
+      if (!isInBoard(col, row, config.rules.boardSize)) break;
+      const occupant = pieceAt(board, col, row);
+      if (!occupant) continue;
+      if (occupant.side === piece.side) return null;
+      return occupant;
+    }
+    return null;
   }
+
+  if (type.attackRange === 'longRanged') {
+    // 距離別の対象列(各距離内は 正面 → 左 → 右 の決定論順)
+    const lanesByDist: Record<number, number[]> = {
+      1: [0, -1, 1, -2, 2],
+      2: [0, -1, 1],
+      3: [0],
+    };
+    // 列毎の遮蔽状態(味方で塞がれた列はそれ以降の距離も不可)
+    const blockedLanes = new Set<number>();
+    for (let dist = 1; dist <= 3; dist++) {
+      for (const dx of lanesByDist[dist]) {
+        if (blockedLanes.has(dx)) continue;
+        const col = piece.col + dx;
+        const row = piece.row + dist * dy;
+        if (!isInBoard(col, row, config.rules.boardSize)) {
+          blockedLanes.add(dx);
+          continue;
+        }
+        const occupant = pieceAt(board, col, row);
+        if (!occupant) continue;
+        if (occupant.side === piece.side) {
+          blockedLanes.add(dx);
+          continue;
+        }
+        return occupant;
+      }
+    }
+    return null;
+  }
+
   return null;
 }
 
@@ -153,10 +188,10 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
 }
 
 // 1 ターン進行: 多段階処理で AnimationStep を生成
-//   Phase 0: 支援効果(増援指揮官 / 投石機)を毎ターン適用 ← NEW
 //   Phase 1: 全駒のアクション決定
 //   Phase 2A: 遠距離攻撃 + 槍兵横払い 同時解決
 //   Phase 2B: melee + move 順次処理
+//   Phase 2C: 支援効果(指揮官 / 投石機)を移動後の位置で適用
 //   Phase 3: 到達判定
 export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
   const step: AnimationStep = {
@@ -168,9 +203,6 @@ export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
     playerReachAfter: 0,
     enemyReachAfter: 0,
   };
-
-  // === Phase 0: 支援効果(各ターン開始時、3 ターン分発動)===
-  applyTurnSupportEffects(state, turnIndex, step);
 
   // 処理順(melee/move 用): 前進度の高い順
   const pieces = [...state.board.pieces].sort((a, b) => {
@@ -338,6 +370,9 @@ export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
     }
   }
 
+  // === Phase 2C: 支援効果(移動後の位置で適用、3 ターン分発動)===
+  applyTurnSupportEffects(state, turnIndex, step);
+
   // 到達判定: ゴール行に到達した駒は退場 + reachCount 加算
   for (const piece of [...state.board.pieces]) {
     if (piece.hp <= 0) continue;
@@ -376,8 +411,8 @@ export function runAdvancePhase(state: GameState): AnimationStep[] {
   return steps;
 }
 
-// 各ターン開始時の支援効果を適用(per-turn, 3 ターン分発動)
-//   増援指揮官: 隣接空マスに兵士 1 体を生成(時計回りに最初の空マス)
+// 各ターンの移動後に支援効果を適用(per-turn, 3 ターン分発動)
+//   増援指揮官: 移動後の位置で隣接空マスに兵士 1 体を生成(時計回りに最初の空マス)
 //   投石機: 決定論的に選んだ敵駒 1 体(可能なら非障害物優先)に 1 ダメージ
 function applyTurnSupportEffects(state: GameState, turnIndex: number, step: AnimationStep): void {
   const supporters = [...state.board.pieces].filter((p) => {

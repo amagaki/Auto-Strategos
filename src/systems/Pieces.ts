@@ -128,8 +128,18 @@ export function getAttackRangeCells(piece: Piece, config: GameConfig): Array<{ c
       cells.push({ col: piece.col, row: piece.row + 2 * dy });
       break;
     case 'longRanged':
+      // 前方三角形扇 9 マス: 距離 1 で 5 列、距離 2 で 3 列、距離 3 で 1 列
+      // 距離 1: dx ∈ {-2, -1, 0, 1, 2}
+      cells.push({ col: piece.col - 2, row: piece.row + dy });
+      cells.push({ col: piece.col - 1, row: piece.row + dy });
       cells.push({ col: piece.col, row: piece.row + dy });
+      cells.push({ col: piece.col + 1, row: piece.row + dy });
+      cells.push({ col: piece.col + 2, row: piece.row + dy });
+      // 距離 2: dx ∈ {-1, 0, 1}
+      cells.push({ col: piece.col - 1, row: piece.row + 2 * dy });
       cells.push({ col: piece.col, row: piece.row + 2 * dy });
+      cells.push({ col: piece.col + 1, row: piece.row + 2 * dy });
+      // 距離 3: dx ∈ {0}
       cells.push({ col: piece.col, row: piece.row + 3 * dy });
       break;
   }
