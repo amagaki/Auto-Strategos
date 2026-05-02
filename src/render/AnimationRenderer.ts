@@ -112,12 +112,15 @@ function drawCombatFlashes(p: p5, step: AnimationStep, state: GameState, tRaw: n
     }
 
     p.pop();
+
+    // 撃破時: 放射状パーティクル(8 個、外側へ拡散しながらフェード)
+    if (ev.defenderDestroyed) {
+      drawDestroyParticles(p, pos, tRaw, ev.defenderId);
+    }
   }
 
   // 到達イベント: ゴールラインで光る
   for (const ev of step.reachEvents) {
-    const goalRow = ev.side === 'player' ? state.config.rules.boardSize - 1 : 0;
-    // pre snapshot 内の最終位置を探すのは簡単ではないので、ゴールライン中央付近で表示
     p.push();
     p.noStroke();
     const goalY = ev.side === 'player'
@@ -132,6 +135,40 @@ function drawCombatFlashes(p: p5, step: AnimationStep, state: GameState, tRaw: n
     p.text(ev.side === 'player' ? '到達!' : '突破!', p.width / 2, goalY);
     p.pop();
   }
+}
+
+// 撃破時の放射状パーティクル(駒位置から 8 方向へ拡散)
+//   defenderId を seed にして角度を決定論的に変化(同じ駒は毎回同じ模様)
+function drawDestroyParticles(
+  p: p5,
+  pos: { x: number; y: number },
+  tRaw: number,
+  defenderId: number,
+): void {
+  if (tRaw < 0.25) return;
+  const localT = Math.min(1, (tRaw - 0.25) / 0.6);  // 0..1
+  const numParticles = 8;
+  // defenderId で初期角度オフセット(駒ごとに違うパターン)
+  const baseAngle = (defenderId * 0.7) % (Math.PI * 2);
+
+  p.push();
+  p.noStroke();
+  for (let i = 0; i < numParticles; i++) {
+    const angle = baseAngle + (i / numParticles) * Math.PI * 2;
+    const distance = localT * 26;
+    const px = pos.x + Math.cos(angle) * distance;
+    const py = pos.y + Math.sin(angle) * distance;
+    const fadeAlpha = Math.round((1 - localT) * 240);
+    // 火花色: 黄→橙
+    const colorPhase = localT;
+    const r = 255;
+    const g = Math.round(220 - colorPhase * 120);
+    const b = Math.round(80 - colorPhase * 60);
+    p.fill(r, g, b, fadeAlpha);
+    const size = 4 - localT * 2;
+    p.ellipse(px, py, size, size);
+  }
+  p.pop();
 }
 
 function BOARD_TOP_Y(state: GameState): number {
