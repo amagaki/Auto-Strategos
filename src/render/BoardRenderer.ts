@@ -214,12 +214,41 @@ function drawMoveGrid(
 
   // 弓兵の遠距離攻撃マーク(グリッドの右脇に小さい弓記号 + "2")
   if (type.attackRange === 'rangedForward') {
-    drawSmallBow(p, pos.x + cellSize * 2.4, row1Y, dir, sideColor, aByte);
+    drawSmallBow(p, pos.x + cellSize * 2.4, row1Y, dir, sideColor, aByte, 2);
+  }
+  // 投石兵の長射程マーク(弓記号 + "3")
+  if (type.attackRange === 'longRanged') {
+    drawSmallBow(p, pos.x + cellSize * 2.4, row1Y, dir, sideColor, aByte, 3);
   }
   // 槍兵の横払いマーク(↔ 記号)
   if (type.attackRange === 'spearReach') {
     drawSpearReachMark(p, pos.x + cellSize * 2.4, row1Y, sideColor, aByte);
   }
+  // 支援駒のマーク(増援指揮官 / 投石機)
+  if (type.support === 'spawn_adjacent_soldier') {
+    drawSupportMark(p, pos.x + cellSize * 2.4, row1Y, sideColor, aByte, '＋');
+  } else if (type.support === 'random_enemy_damage') {
+    drawSupportMark(p, pos.x + cellSize * 2.4, row1Y, sideColor, aByte, '△');
+  }
+}
+
+// 支援駒の小マーク
+function drawSupportMark(
+  p: p5,
+  x: number,
+  y: number,
+  color: number[],
+  alpha: number,
+  symbol: string,
+): void {
+  p.push();
+  p.noStroke();
+  p.fill(color[0], color[1], color[2], alpha);
+  p.textSize(11);
+  p.textStyle(p.BOLD);
+  p.textAlign(p.CENTER, p.CENTER);
+  p.text(symbol, x, y);
+  p.pop();
 }
 
 // 槍兵の横払い表示(↔ 風)
@@ -302,7 +331,7 @@ function drawPieceStats(
   }
 }
 
-// 弓兵の遠距離マーク(弓型 + 射程数値)
+// 遠距離攻撃マーク(弓型 + 射程数値)
 function drawSmallBow(
   p: p5,
   x: number,
@@ -310,27 +339,26 @@ function drawSmallBow(
   dir: number,
   color: number[],
   alpha: number,
+  range: number = 2,
 ): void {
   p.push();
   p.noFill();
   p.stroke(color[0], color[1], color[2], alpha);
   p.strokeWeight(1.5);
-  // 弧(少し大きく)
   if (dir < 0) {
     p.arc(x, y, 12, 12, Math.PI * 0.7, Math.PI * 1.3);
   } else {
     p.arc(x, y, 12, 12, -Math.PI * 0.3, Math.PI * 0.3);
   }
-  // 矢
   p.strokeWeight(2);
   p.line(x - 4, y, x + 4, y);
-  // 射程数値「2」を弓の脇に
+  // 射程数値
   p.noStroke();
   p.fill(color[0], color[1], color[2], alpha);
   p.textSize(9);
   p.textStyle(p.BOLD);
   p.textAlign(p.LEFT, p.CENTER);
-  p.text('2', x + 7, y);
+  p.text(String(range), x + 7, y);
   p.pop();
 }
 
@@ -477,29 +505,28 @@ export function drawMoveHighlights(
     p.rect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8, 8);
   }
 
-  // 弓兵の遠距離攻撃: 射程 1〜2 マスを表示(味方で遮られたら停止)
-  //   空マス: 薄紫塗り(射程の可視化)
-  //   敵駒 : 濃い紫枠(攻撃可能を強調)
-  if (type.attackRange === 'rangedForward') {
+  // 遠距離攻撃ハイライト(味方で遮られたら停止)
+  //   弓兵 (rangedForward): 1〜2 マス
+  //   投石兵 (longRanged): 1〜3 マス
+  if (type.attackRange === 'rangedForward' || type.attackRange === 'longRanged') {
+    const maxDist = type.attackRange === 'longRanged' ? 3 : 2;
     const dy = forwardDelta(piece.side);
-    for (let dist = 1; dist <= 2; dist++) {
+    for (let dist = 1; dist <= maxDist; dist++) {
       const col = piece.col;
       const row = piece.row + dist * dy;
       if (!isInBoard(col, row, boardSize)) break;
       const occ = pieceAt(board, col, row);
-      if (occ && occ.side === piece.side) break;  // 味方で遮られる
+      if (occ && occ.side === piece.side) break;
       const x = colToX(col);
       const y = rowToY(row, boardSize);
       if (occ) {
-        // 敵駒: 濃い紫枠
         p.noFill();
         p.stroke(200, 120, 220, 220);
         p.strokeWeight(3);
         p.rect(x + 8, y + 8, CELL_SIZE - 16, CELL_SIZE - 16, 6);
         p.noStroke();
-        break;  // 敵に当たれば射程終了
+        break;
       } else {
-        // 空マス: 薄紫塗り(射程の可視化)
         p.fill(200, 120, 220, 55);
         p.rect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12, 6);
       }

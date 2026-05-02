@@ -127,6 +127,11 @@ export function getAttackRangeCells(piece: Piece, config: GameConfig): Array<{ c
       cells.push({ col: piece.col, row: piece.row + dy });
       cells.push({ col: piece.col, row: piece.row + 2 * dy });
       break;
+    case 'longRanged':
+      cells.push({ col: piece.col, row: piece.row + dy });
+      cells.push({ col: piece.col, row: piece.row + 2 * dy });
+      cells.push({ col: piece.col, row: piece.row + 3 * dy });
+      break;
   }
 
   return cells.filter((c) => isInBoard(c.col, c.row, config.rules.boardSize));

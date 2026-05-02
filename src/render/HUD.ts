@@ -64,7 +64,7 @@ export function renderShop(
 
     card.innerHTML = `
       <div class="card-name">${type.symbol} ${type.name}</div>
-      <div class="move-grid">${moveGridHtml(type.moveStyle, type.attackRange)}</div>
+      <div class="move-grid">${moveGridHtml(type.moveStyle, type.attackRange, type.support)}</div>
       <div class="card-stats">
         <span class="stat-hp">♥${type.hp}</span>
         <span class="stat-atk">⚔${type.attack}</span>
@@ -81,13 +81,20 @@ export function renderShop(
 }
 
 // 動きグリッドを HTML で表現(Onitama 流): forward 方向の点群
-export function moveGridHtml(moveStyle: string, attackRange: string): string {
-  // 射程バッジ: rangedForward は「射程 2」を明記、spearReach は「横払い」を明記
+export function moveGridHtml(moveStyle: string, attackRange: string, support?: string): string {
   let rangedBadge = '';
   if (attackRange === 'rangedForward') {
     rangedBadge = '<span class="ranged-badge" title="遠距離攻撃 2 マス">⤴ 射程2</span>';
+  } else if (attackRange === 'longRanged') {
+    rangedBadge = '<span class="ranged-badge" title="超遠距離攻撃 3 マス">⤴ 射程3</span>';
   } else if (attackRange === 'spearReach') {
     rangedBadge = '<span class="ranged-badge" title="前 + 横にも攻撃可能">↔ 横払い</span>';
+  }
+  // 支援バッジ
+  if (support === 'spawn_adjacent_soldier') {
+    rangedBadge += '<span class="ranged-badge" title="サイクル開始時に隣接マスに兵士を生成" style="background:rgba(216,192,104,0.4); border-color:#b89968; color:#6a4818">＋兵士</span>';
+  } else if (support === 'random_enemy_damage') {
+    rangedBadge += '<span class="ranged-badge" title="サイクル開始時にランダム敵に1ダメージ" style="background:rgba(138,112,80,0.4); border-color:#8a7050; color:#3a2c1c">△投石</span>';
   }
   let rows: string[];
   switch (moveStyle) {
@@ -164,7 +171,7 @@ export function renderLegend(state: GameState): void {
     const item = document.createElement('div');
     item.className = 'legend-item';
     const isObstacle = type.id === 'obstacle';
-    const gridHtml = isObstacle ? '<span class="li-grid-static">―</span>' : moveGridHtml(type.moveStyle, type.attackRange);
+    const gridHtml = isObstacle ? '<span class="li-grid-static">―</span>' : moveGridHtml(type.moveStyle, type.attackRange, type.support);
     const atkHtml = type.attack > 0
       ? `<span class="atk">⚔${type.attack}</span>`
       : `<span class="atk-na">壁</span>`;

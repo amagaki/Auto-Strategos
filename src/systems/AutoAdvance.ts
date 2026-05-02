@@ -16,7 +16,7 @@ import {
   pieceAt,
 } from './Pieces';
 import { resolveMelee, resolveRanged } from './Combat';
-import { reachedGoal, removePieceById } from './Board';
+import { reachedGoal, removePieceById, addPiece } from './Board';
 
 interface ChosenAction {
   // spearSideAttack: 槍兵の横払い(動かない攻撃)
@@ -39,12 +39,17 @@ function recordKill(state: GameState, attacker: Piece, victim: Piece): void {
   }
 }
 
-// 弓兵の遠距離攻撃: 前方 1 マス → 前方 2 マスを順に走査、最初に出会った敵が対象。味方で遮られたら不発。
+// 遠距離攻撃: 前方を順に走査、最初に出会った敵が対象。味方で遮られたら不発。
+//   弓兵 (rangedForward): 前 2 マス
+//   投石兵 (longRanged): 前 3 マス
 function findRangedTarget(piece: Piece, board: BoardState, config: GameConfig): Piece | null {
   const type = getPieceType(config, piece.typeId);
-  if (type.attackRange !== 'rangedForward') return null;
+  let maxDist: number;
+  if (type.attackRange === 'rangedForward') maxDist = 2;
+  else if (type.attackRange === 'longRanged') maxDist = 3;
+  else return null;
   const dy = forwardDelta(piece.side);
-  for (let dist = 1; dist <= 2; dist++) {
+  for (let dist = 1; dist <= maxDist; dist++) {
     const col = piece.col;
     const row = piece.row + dist * dy;
     if (!isInBoard(col, row, config.rules.boardSize)) break;
@@ -356,4 +361,54 @@ export function runAdvancePhase(state: GameState): AnimationStep[] {
     }
   }
   return steps;
+}
+
+// 各サイクル開始時の支援効果を適用
+//   増援指揮官: 隣接空マスに兵士 1 体を生成(時計回りに最初の空マス)
+//   投石機: 決定論的に選んだ敵駒 1 体に 1 ダメージ
+export function applySupportEffects(state: GameState): void {
+  const supporters = [...state.board.pieces].filter((p) => {
+    if (p.hp <= 0) return false;
+    const type = getPieceType(state.config, p.typeId);
+    return !!type.support;
+  });
+
+  for (const piece of supporters) {
+    const type = getPieceType(state.config, piece.typeId);
+    if (type.support === 'spawn_adjacent_soldier') {
+      // 8 方向の隣接マスから空マスを探す(時計回り)
+      const adjacent: Array<[number, number]> = [
+        [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1],
+      ];
+      for (const [dc, dr] of adjacent) {
+        const c = piece.col + dc;
+        const r = piece.row + dr;
+        if (!isInBoard(c, r, state.config.rules.boardSize)) continue;
+        if (pieceAt(state.board, c, r)) continue;
+        const soldierType = getPieceType(state.config, 'soldier');
+        addPiece(state.board, {
+          id: state.nextPieceId++,
+          typeId: 'soldier',
+          side: piece.side,
+          hp: soldierType.hp,
+          col: c,
+          row: r,
+        });
+        break;  // 1 体のみ生成
+      }
+    } else if (type.support === 'random_enemy_damage') {
+      const enemyPieces = state.board.pieces.filter(
+        (p) => p.side !== piece.side && p.hp > 0,
+      );
+      if (enemyPieces.length === 0) continue;
+      // 決定論的選定(ホバー予測との一致)
+      const idx = Math.abs(state.cycle * 31 + piece.id) % enemyPieces.length;
+      const target = enemyPieces[idx];
+      target.hp -= 1;
+      if (target.hp <= 0) {
+        recordKill(state, piece, target);
+        removePieceById(state.board, target.id);
+      }
+    }
+  }
 }

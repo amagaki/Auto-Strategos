@@ -78,6 +78,41 @@
       "attackRange": "forwardWithDiag"
     },
     {
+      "id": "thrower",
+      "name": "投石兵",
+      "symbol": "石",
+      "color": "#b8a888",
+      "attack": 2,
+      "hp": 1,
+      "cost": 8,
+      "moveStyle": "forwardOnlyHeavy",
+      "attackRange": "longRanged"
+    },
+    {
+      "id": "commander",
+      "name": "増援指揮官",
+      "symbol": "援",
+      "color": "#d8c068",
+      "attack": 0,
+      "hp": 2,
+      "cost": 6,
+      "moveStyle": "forwardOnlyHeavy",
+      "attackRange": "none",
+      "support": "spawn_adjacent_soldier"
+    },
+    {
+      "id": "catapult",
+      "name": "投石機",
+      "symbol": "投",
+      "color": "#8a7050",
+      "attack": 0,
+      "hp": 1,
+      "cost": 5,
+      "moveStyle": "forwardOnlyHeavy",
+      "attackRange": "none",
+      "support": "random_enemy_damage"
+    },
+    {
       "id": "obstacle",
       "name": "障害物",
       "symbol": "■",
@@ -91,7 +126,7 @@
   ],
   "economy": {
     "initialGold": 5,
-    "incomePerCycle": 3,
+    "incomePerCycle": 4,
     "interestRate": 0.10,
     "interestCap": 5,
     "rerollCost": 1

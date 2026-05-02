@@ -50,17 +50,25 @@ export function rerollShop(state: GameState): boolean {
 }
 
 export function applyCycleIncome(state: GameState): void {
+  // 累進収入: 4g + 3 サイクルごと +1g(両陣営共通)
+  //   cycle 1: 直前は 0(初期金) → 適用後の cycle 2 で 4g
+  //   cycle 4 への移行: 4 + Math.floor((4-1)/3) = 5g
+  //   cycle 7 への移行: 4 + Math.floor((7-1)/3) = 6g
+  const baseIncome = state.config.economy.incomePerCycle;  // config では 4 に変更
+  const cycleBonus = Math.floor((state.cycle - 1) / 3);
+  const totalIncome = baseIncome + cycleBonus;
+
   const interest = Math.min(
     Math.floor(state.player.gold * state.config.economy.interestRate),
     state.config.economy.interestCap,
   );
-  state.player.gold += state.config.economy.incomePerCycle + interest;
+  state.player.gold += totalIncome + interest;
 
   const aiInterest = Math.min(
     Math.floor(state.enemy.gold * state.config.economy.interestRate),
     state.config.economy.interestCap,
   );
-  state.enemy.gold += state.config.economy.incomePerCycle + aiInterest;
+  state.enemy.gold += totalIncome + aiInterest;
 }
 
 export function getOfferType(state: GameState, offerIndex: number): PieceTypeId | null {
