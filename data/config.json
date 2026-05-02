@@ -95,7 +95,7 @@
       "color": "#d8c068",
       "attack": 0,
       "hp": 2,
-      "cost": 6,
+      "cost": 10,
       "moveStyle": "forwardOnlyHeavy",
       "attackRange": "none",
       "support": "spawn_adjacent_soldier"

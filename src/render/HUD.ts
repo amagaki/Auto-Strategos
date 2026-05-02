@@ -1,16 +1,22 @@
 import type { GameState } from '../types';
 import { getPieceType } from '../systems/Pieces';
+import { projectedNextIncome } from '../systems/Shop';
 import { pieceName } from '../i18n';
 
 // 上部 HUD の更新
 export function updateHud(state: GameState): void {
   const cycleEl = document.getElementById('hud-cycle');
   const goldEl = document.getElementById('hud-gold');
+  const incomeEl = document.getElementById('hud-income');
   const reachSelfEl = document.getElementById('hud-reach-self');
   const reachEnemyEl = document.getElementById('hud-reach-enemy');
 
   if (cycleEl) cycleEl.textContent = String(state.cycle);
   if (goldEl) goldEl.textContent = String(state.player.gold);
+  if (incomeEl) {
+    const projected = projectedNextIncome(state);
+    incomeEl.textContent = `(+${projected}g 次サイクル)`;
+  }
 
   // アニメ中はステップ進行に応じて到達数を更新(0.5 を境に切替)
   let playerReach = state.player.reachCount;

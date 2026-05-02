@@ -13,7 +13,7 @@ import {
   rerollShop,
 } from './systems/Shop';
 import { aiTakeTurn } from './systems/AI';
-import { runAdvancePhase, applySupportEffects } from './systems/AutoAdvance';
+import { runAdvancePhase } from './systems/AutoAdvance';
 import { getPieceType } from './systems/Pieces';
 
 // デフォルト設定: 設定画面を経由しなくても "良い感じ" で遊べる値
@@ -230,7 +230,7 @@ function finalizeAnimation(state: GameState): void {
   // 次サイクルへ
   state.cycle++;
   applyCycleIncome(state);
-  applySupportEffects(state);  // 支援効果(増援指揮官・投石機)を適用
+  // 支援効果は runOneTurn 内で per-turn 適用されるため、ここでは呼ばない
   state.shop.offers = generateShopOffers(state.config, state.settings.loadoutPreset);
   aiTakeTurn(state);
   state.phase = 'placement';

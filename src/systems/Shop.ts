@@ -50,12 +50,10 @@ export function rerollShop(state: GameState): boolean {
 }
 
 export function applyCycleIncome(state: GameState): void {
-  // 累進収入: 4g + 3 サイクルごと +1g(両陣営共通)
-  //   cycle 1: 直前は 0(初期金) → 適用後の cycle 2 で 4g
-  //   cycle 4 への移行: 4 + Math.floor((4-1)/3) = 5g
-  //   cycle 7 への移行: 4 + Math.floor((7-1)/3) = 6g
-  const baseIncome = state.config.economy.incomePerCycle;  // config では 4 に変更
-  const cycleBonus = Math.floor((state.cycle - 1) / 3);
+  // 累進収入: 4g + 2 サイクルごと +1g(両陣営共通)
+  //   cycle 2 で +0(=4g) / cycle 3 で +1(=5g) / cycle 5 で +2(=6g) / cycle 7 で +3(=7g)
+  const baseIncome = state.config.economy.incomePerCycle;  // config では 4
+  const cycleBonus = Math.floor((state.cycle - 1) / 2);
   const totalIncome = baseIncome + cycleBonus;
 
   const interest = Math.min(
@@ -75,4 +73,17 @@ export function getOfferType(state: GameState, offerIndex: number): PieceTypeId 
   const offer = state.shop.offers[offerIndex];
   if (!offer) return null;
   return offer.pieceTypeId;
+}
+
+// 次サイクル開始時の予想収入(基本 + サイクルボーナス + 利息)
+export function projectedNextIncome(state: GameState): number {
+  // 次サイクルの番号
+  const nextCycle = state.cycle + 1;
+  const baseIncome = state.config.economy.incomePerCycle;
+  const cycleBonus = Math.floor((nextCycle - 1) / 2);
+  const interest = Math.min(
+    Math.floor(state.player.gold * state.config.economy.interestRate),
+    state.config.economy.interestCap,
+  );
+  return baseIncome + cycleBonus + interest;
 }

@@ -104,11 +104,13 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
 
   if (filtered.length === 0) return { kind: 'stay' };
 
-  // スコアリング:
-  //   攻撃で倒せる: 100 + 前進度
-  //   攻撃するが倒せない: 50 + 前進度
+  // スコアリング(ユニット > 障害物):
+  //   敵ユニット撃破可能: 110 + 前進度
+  //   敵ユニット攻撃(撃破不可): 60 + 前進度
+  //   敵障害物破壊可能: 40 + 前進度
+  //   敵障害物攻撃(破壊不可): 25 + 前進度
   //   ただ進む: 10 + 前進度
-  // 同点はランダム
+  // 同点は決定論的破り(配列の先頭)
   const attackerType = getPieceType(config, piece.typeId);
   const scored = filtered.map((c) => {
     const occ = pieceAt(board, c.col, c.row);
@@ -117,10 +119,17 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
     const progressScore = forwardProgress({ ...piece, col: c.col, row: c.row }, piece.side, config.rules.boardSize);
     if (occ && occ.side !== piece.side) {
       const wouldKill = occ.hp <= attackerType.attack;
+      const isObstacle = occ.typeId === 'obstacle';
+      let baseScore: number;
+      if (isObstacle) {
+        baseScore = wouldKill ? 40 : 25;  // 障害物は低優先
+      } else {
+        baseScore = wouldKill ? 110 : 60;  // ユニットは高優先
+      }
       return {
         cand: c,
         occ,
-        score: (wouldKill ? 100 : 50) + progressScore + fwdGain * 0.1,
+        score: baseScore + progressScore + fwdGain * 0.1,
       };
     }
     return { cand: c, occ: null, score: 10 + progressScore + fwdGain * 0.1 };
@@ -143,10 +152,11 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
   return { kind: 'move', targetCol: chosen.cand.col, targetRow: chosen.cand.row };
 }
 
-// 1 ターン進行: 2 段階処理で AnimationStep を生成
-//   Phase 1: 全駒のアクション決定(ボード状態スナップショット時点)
-//   Phase 2A: 遠距離攻撃 + 槍兵横払い を「同時解決」(相打ち成立)
-//   Phase 2B: melee + move を順次処理(衝突は順序的に正当化)
+// 1 ターン進行: 多段階処理で AnimationStep を生成
+//   Phase 0: 支援効果(増援指揮官 / 投石機)を毎ターン適用 ← NEW
+//   Phase 1: 全駒のアクション決定
+//   Phase 2A: 遠距離攻撃 + 槍兵横払い 同時解決
+//   Phase 2B: melee + move 順次処理
 //   Phase 3: 到達判定
 export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
   const step: AnimationStep = {
@@ -158,6 +168,9 @@ export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
     playerReachAfter: 0,
     enemyReachAfter: 0,
   };
+
+  // === Phase 0: 支援効果(各ターン開始時、3 ターン分発動)===
+  applyTurnSupportEffects(state, turnIndex, step);
 
   // 処理順(melee/move 用): 前進度の高い順
   const pieces = [...state.board.pieces].sort((a, b) => {
@@ -363,10 +376,10 @@ export function runAdvancePhase(state: GameState): AnimationStep[] {
   return steps;
 }
 
-// 各サイクル開始時の支援効果を適用
+// 各ターン開始時の支援効果を適用(per-turn, 3 ターン分発動)
 //   増援指揮官: 隣接空マスに兵士 1 体を生成(時計回りに最初の空マス)
-//   投石機: 決定論的に選んだ敵駒 1 体に 1 ダメージ
-export function applySupportEffects(state: GameState): void {
+//   投石機: 決定論的に選んだ敵駒 1 体(可能なら非障害物優先)に 1 ダメージ
+function applyTurnSupportEffects(state: GameState, turnIndex: number, step: AnimationStep): void {
   const supporters = [...state.board.pieces].filter((p) => {
     if (p.hp <= 0) return false;
     const type = getPieceType(state.config, p.typeId);
@@ -397,18 +410,40 @@ export function applySupportEffects(state: GameState): void {
         break;  // 1 体のみ生成
       }
     } else if (type.support === 'random_enemy_damage') {
-      const enemyPieces = state.board.pieces.filter(
+      // ユニット優先: 敵駒のうち障害物以外を優先候補に
+      const enemyAll = state.board.pieces.filter(
         (p) => p.side !== piece.side && p.hp > 0,
       );
-      if (enemyPieces.length === 0) continue;
-      // 決定論的選定(ホバー予測との一致)
-      const idx = Math.abs(state.cycle * 31 + piece.id) % enemyPieces.length;
-      const target = enemyPieces[idx];
+      const enemyUnits = enemyAll.filter((p) => p.typeId !== 'obstacle');
+      const targets = enemyUnits.length > 0 ? enemyUnits : enemyAll;
+      if (targets.length === 0) continue;
+      // 決定論的選定(cycle + turn + pieceId の組合せでターン毎に変化)
+      const seed = state.cycle * 1000 + turnIndex * 31 + piece.id;
+      const idx = Math.abs(seed) % targets.length;
+      const target = targets[idx];
+      const beforeHp = target.hp;
       target.hp -= 1;
+      // 戦闘イベントとして記録(視覚フィードバック)
+      step.combatEvents.push({
+        attackerId: piece.id,
+        defenderId: target.id,
+        damage: 1,
+        defenderHpAfter: target.hp,
+        defenderDestroyed: target.hp <= 0,
+        atCol: target.col,
+        atRow: target.row,
+      });
       if (target.hp <= 0) {
         recordKill(state, piece, target);
         removePieceById(state.board, target.id);
       }
+      void beforeHp;
     }
   }
+}
+
+// 旧 API 互換用: 外部から呼ばれる場合の no-op (game.ts 側を更新するため、こちらも残す)
+export function applySupportEffects(_state: GameState): void {
+  // 支援効果は runOneTurn 内で per-turn 適用されるようになった。
+  // game.ts の finalizeAnimation 内の呼び出しは削除すべき。
 }
