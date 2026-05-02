@@ -512,6 +512,11 @@
         <button class="btn-secondary" id="title-settings" data-i18n="title.settings">ゲーム設定</button>
         <button class="btn-tertiary" id="title-help" data-i18n="title.help">遊び方</button>
         <button class="btn-tertiary" id="title-privacy" data-i18n="title.privacy" style="font-size: 12px; opacity: 0.85;">プライバシーポリシー</button>
+        <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+          <span data-i18n="language.label">言語</span>:
+          <button class="btn-tertiary lang-btn" data-lang="ja" style="padding: 4px 10px; font-size: 12px; min-width: auto; margin-left: 6px;">日本語</button>
+          <button class="btn-tertiary lang-btn" data-lang="en" style="padding: 4px 10px; font-size: 12px; min-width: auto;">English</button>
+        </div>
       </div>
     </div>
   </section>
@@ -581,10 +586,10 @@
     <div class="page-container">
       <div class="board-section">
         <div id="hud-top" class="ui-panel">
-          <div class="row">サイクル: <span id="hud-cycle">1</span></div>
-          <div class="row">所持金: <span class="gold" id="hud-gold">5</span> g</div>
-          <div class="row">自陣到達: <span class="reach-self" id="hud-reach-self">0</span> / 3</div>
-          <div class="row">敵陣到達: <span class="reach-enemy" id="hud-reach-enemy">0</span> / 3</div>
+          <div class="row"><span data-i18n="game.cycle">サイクル</span>: <span id="hud-cycle">1</span></div>
+          <div class="row"><span data-i18n="game.gold">所持金</span>: <span class="gold" id="hud-gold">5</span> g</div>
+          <div class="row"><span data-i18n="game.selfReach">自陣到達</span>: <span class="reach-self" id="hud-reach-self">0</span> / 3</div>
+          <div class="row"><span data-i18n="game.enemyReach">敵陣到達</span>: <span class="reach-enemy" id="hud-reach-enemy">0</span> / 3</div>
           <div class="spacer"></div>
           <button id="title-btn-game" title="タイトルへ戻る">⌂</button>
           <button id="help-btn" title="ルール解説">?</button>
@@ -596,22 +601,19 @@
 
         <div id="shop-panel" class="ui-panel">
           <div id="shop-cards" style="display: flex; gap: 8px;"></div>
-          <button id="reroll-btn">リロール (1g)</button>
-          <button id="go-btn">Go &gt;</button>
+          <button id="reroll-btn" data-i18n="game.reroll">リロール (1g)</button>
+          <button id="go-btn" data-i18n="game.go">Go &gt;</button>
         </div>
       </div>
 
       <div id="legend-panel" class="ui-panel">
         <div class="legend-header">
-          <span class="legend-title">駒 凡例</span>
+          <span class="legend-title" data-i18n="game.legend">駒 凡例</span>
           <button id="legend-toggle" title="凡例の表示/非表示">−</button>
         </div>
         <div class="legend-body" id="legend-body"></div>
-        <div class="legend-hint">
-          <b>shop</b> で駒選択 → 自陣に<b>配置</b><br>
-          駒<b>ホバー</b> = 動ける範囲 + 3 ターン予測<br>
-          <b>[Go]</b> で 3 ターン自動進行<br>
-          <span style="color: #888">自陣の壁(■)は同盟扱い</span>
+        <div class="legend-hint" data-i18n="game.legendHint">
+          shop で駒選択 → 自陣に配置 / 駒ホバー = 動ける範囲 + 3 ターン予測 / [Go] で 3 ターン自動進行 / 自陣の壁(■)は同盟扱い
         </div>
       </div>
     </div>
@@ -624,25 +626,25 @@
       <div class="result-subtitle" id="result-subtitle-screen"></div>
       <div class="result-stats" id="result-stats-screen">
         <div>
-          <span class="label">サイクル数</span>
+          <span class="label" data-i18n="result.cycles">サイクル数</span>
           <span class="value" id="rs-cycles">0</span>
         </div>
         <div>
-          <span class="label">自陣到達</span>
+          <span class="label" data-i18n="result.selfReach">自陣到達</span>
           <span class="value" id="rs-reach-self">0</span>
         </div>
         <div>
-          <span class="label">敵陣到達</span>
+          <span class="label" data-i18n="result.enemyReach">敵陣到達</span>
           <span class="value" id="rs-reach-enemy">0</span>
         </div>
         <div>
-          <span class="label">撃破した敵</span>
+          <span class="label" data-i18n="result.playerKills">撃破した敵</span>
           <span class="value" id="rs-player-kills">0</span>
         </div>
       </div>
       <div class="result-actions">
-        <button class="btn-primary" id="result-restart">同じ設定で再戦</button>
-        <button class="btn-secondary" id="result-title-btn">タイトルへ</button>
+        <button class="btn-primary" id="result-restart" data-i18n="result.restart">同じ設定で再戦</button>
+        <button class="btn-secondary" id="result-title-btn" data-i18n="result.backToTitle">タイトルへ</button>
       </div>
     </div>
   </section>

@@ -41,6 +41,7 @@ import {
 import { predictPath, type PredictPath } from './systems/HoverPredict';
 import { soundManager } from './audio/SoundManager';
 import { trackEvent, Events } from './analytics';
+import { initLang, setLang, t, applyI18nToDom } from './i18n';
 
 const config = configData as GameConfig;
 
@@ -312,24 +313,29 @@ function showResultScreen(): void {
   if (titleEl) {
     if (state.result === 'win') {
       titleEl.className = 'result-title win';
-      titleEl.textContent = '勝利';
+      titleEl.textContent = t('result.win');
     } else if (state.result === 'lose') {
       titleEl.className = 'result-title lose';
-      titleEl.textContent = '敗北';
+      titleEl.textContent = t('result.lose');
     } else {
       titleEl.className = 'result-title draw';
-      titleEl.textContent = '引き分け';
+      titleEl.textContent = t('result.draw');
     }
   }
   if (subEl) {
-    if (state.result === 'win') subEl.textContent = '敵陣最奥に 3 体到達';
-    else if (state.result === 'lose') subEl.textContent = '自陣最奥に 3 体到達されました';
-    else subEl.textContent = '同サイクルで両者 3 体到達';
+    if (state.result === 'win') subEl.textContent = t('result.subWin');
+    else if (state.result === 'lose') subEl.textContent = t('result.subLose');
+    else subEl.textContent = t('result.subDraw');
   }
   setText('rs-cycles', String(state.cycle));
   setText('rs-reach-self', `${state.player.reachCount} / 3`);
   setText('rs-reach-enemy', `${state.enemy.reachCount} / 3`);
   setText('rs-player-kills', String(state.stats.playerKills));
+  // ラベルも翻訳更新
+  document.querySelectorAll<HTMLElement>('#screen-result [data-i18n-label]').forEach((el) => {
+    const key = el.getAttribute('data-i18n-label');
+    if (key) el.textContent = t(key);
+  });
   showScreen('result');
 }
 
@@ -346,6 +352,8 @@ const sketch = (p: p5) => {
     const canvas = p.createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
     canvas.parent('app');
     p.frameRate(60);
+    initLang();
+    applyI18nToDom();
     bindUiButtons();
     applySettingsToUI();
     showScreen('title');  // 初期画面はタイトル
@@ -571,6 +579,25 @@ function bindUiButtons(): void {
   });
   document.getElementById('result-title-btn')?.addEventListener('click', () => {
     showScreen('title');
+  });
+
+  // 言語切替ボタン(タイトル画面)
+  document.querySelectorAll<HTMLButtonElement>('.lang-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const lang = btn.getAttribute('data-lang');
+      if (lang === 'ja' || lang === 'en') {
+        setLang(lang);
+        applyI18nToDom();
+        // ゲーム関連 UI を再生成
+        if (state) {
+          rebindShop();
+          renderLegend(state);
+          updateHud(state);
+        }
+        applySettingsToUI();
+        soundManager.playClick();
+      }
+    });
   });
 
   // チュートリアル

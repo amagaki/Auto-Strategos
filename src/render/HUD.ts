@@ -1,5 +1,6 @@
 import type { GameState } from '../types';
 import { getPieceType } from '../systems/Pieces';
+import { pieceName } from '../i18n';
 
 // 上部 HUD の更新
 export function updateHud(state: GameState): void {
@@ -63,7 +64,7 @@ export function renderShop(
     }
 
     card.innerHTML = `
-      <div class="card-name">${type.symbol} ${type.name}</div>
+      <div class="card-name">${type.symbol} ${pieceName(type.id)}</div>
       <div class="move-grid">${moveGridHtml(type.moveStyle, type.attackRange, type.support)}</div>
       <div class="card-stats">
         <span class="stat-hp">♥${type.hp}</span>
@@ -178,7 +179,7 @@ export function renderLegend(state: GameState): void {
     item.innerHTML = `
       <div class="li-symbol">${type.symbol}</div>
       <div class="li-info">
-        <div class="li-name">${type.name}</div>
+        <div class="li-name">${pieceName(type.id)}</div>
         <div class="li-grid">${gridHtml}</div>
       </div>
       <div class="li-stats">
