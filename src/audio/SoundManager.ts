@@ -12,6 +12,8 @@ interface VolumeSettings {
 class SoundManager {
   private audioCtx: AudioContext | null = null;
   private volume: VolumeSettings;
+  private bgmAudio: HTMLAudioElement | null = null;
+  private bgmStarted = false;
 
   constructor() {
     this.volume = this.loadVolume();
@@ -27,6 +29,41 @@ class SoundManager {
       return this.audioCtx;
     } catch {
       return null;
+    }
+  }
+
+  // BGM 再生(初回ユーザーインタラクション後にしか動かない)
+  startBgm(): void {
+    if (this.bgmStarted) return;
+    try {
+      this.bgmAudio = new Audio('./sound/maou_bgm_piano27.mp3');
+      this.bgmAudio.loop = true;
+      this.bgmAudio.volume = this.volume.bgm;
+      const playPromise = this.bgmAudio.play();
+      if (playPromise && typeof playPromise.then === 'function') {
+        playPromise.then(() => { this.bgmStarted = true; }).catch(() => {
+          // 自動再生ブロックされた場合は次のクリック時に再試行
+          this.bgmStarted = false;
+        });
+      } else {
+        this.bgmStarted = true;
+      }
+    } catch {
+      // 失敗は黙殺
+    }
+  }
+
+  stopBgm(): void {
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+      this.bgmAudio.currentTime = 0;
+    }
+    this.bgmStarted = false;
+  }
+
+  private updateBgmVolume(): void {
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = this.volume.bgm;
     }
   }
 
@@ -57,6 +94,7 @@ class SoundManager {
   setBgmVolume(v: number): void {
     this.volume.bgm = Math.max(0, Math.min(1, v));
     this.saveVolume();
+    this.updateBgmVolume();
   }
   getSeVolume(): number { return this.volume.se; }
   getBgmVolume(): number { return this.volume.bgm; }
@@ -137,51 +175,60 @@ class SoundManager {
   }
 
   // === 公開メソッド: 各イベントで呼ばれる ===
+  //   ピアノ BGM の雰囲気に合わせて、sine/triangle 主体の柔らかい音色に調整
 
   playClick(): void {
-    this.playTone({ freq: 1200, type: 'sine', durMs: 60, volume: 0.7 });
+    // クリック: 軽い高音(短くシンプル)
+    this.playTone({ freq: 1320, type: 'sine', durMs: 50, volume: 0.5 });
   }
 
   playPlace(): void {
-    // 駒配置: 短い低めの音
-    this.playTone({ freq: 380, type: 'triangle', durMs: 90, volume: 1.0 });
+    // 駒配置: 木の駒を置くような柔らかい中音
+    this.playTone({ freq: 440, type: 'triangle', durMs: 100, freqEnd: 380, volume: 0.7 });
   }
 
   playGo(): void {
-    // Go ボタン: 下降アルペジオ風
-    this.playTone({ freq: 660, type: 'square', durMs: 100, freqEnd: 440, volume: 0.8 });
+    // Go ボタン: 開始の合図(C-E-G の三和音風アルペジオ)
+    this.playTone({ freq: 523, type: 'triangle', durMs: 90, volume: 0.7 });
+    setTimeout(() => this.playTone({ freq: 659, type: 'triangle', durMs: 90, volume: 0.7 }), 70);
+    setTimeout(() => this.playTone({ freq: 784, type: 'sine', durMs: 140, volume: 0.7 }), 140);
   }
 
   playAttack(): void {
-    // 攻撃: 短いビープ
-    this.playTone({ freq: 280, type: 'sawtooth', durMs: 70, freqEnd: 200, volume: 0.6 });
+    // 攻撃: 低めの柔らかい一音(剣戟ではなく駒の接触音)
+    this.playTone({ freq: 320, type: 'triangle', durMs: 75, freqEnd: 240, volume: 0.5 });
   }
 
   playDestroy(): void {
-    // 撃破: ノイズ + 周波数低下
-    this.playNoise({ durMs: 220, freqHigh: 1500, freqLow: 200, volume: 1.0 });
+    // 撃破: 柔らかいノイズ + 低音
+    this.playNoise({ durMs: 200, freqHigh: 800, freqLow: 180, volume: 0.55 });
+    this.playTone({ freq: 200, type: 'sine', durMs: 200, freqEnd: 100, volume: 0.4 });
   }
 
   playReach(): void {
-    // 到達: 上昇音階
-    this.playTone({ freq: 523, type: 'triangle', durMs: 120, volume: 0.8 });
-    setTimeout(() => this.playTone({ freq: 659, type: 'triangle', durMs: 120, volume: 0.8 }), 100);
-    setTimeout(() => this.playTone({ freq: 784, type: 'triangle', durMs: 200, volume: 0.9 }), 200);
+    // 到達: ベル風の上昇音階(C-E-G、輝かしく)
+    this.playTone({ freq: 523, type: 'sine', durMs: 130, volume: 0.7 });
+    setTimeout(() => this.playTone({ freq: 659, type: 'sine', durMs: 130, volume: 0.7 }), 110);
+    setTimeout(() => this.playTone({ freq: 784, type: 'sine', durMs: 220, volume: 0.8 }), 220);
   }
 
   playWin(): void {
-    // 勝利: 上昇 4 音
+    // 勝利: 4 音上昇(C-E-G-C)
     const notes = [523, 659, 784, 1047];
     notes.forEach((freq, i) => {
-      setTimeout(() => this.playTone({ freq, type: 'triangle', durMs: 200, volume: 0.9 }), i * 130);
+      setTimeout(() => this.playTone({
+        freq, type: 'sine', durMs: 220, volume: 0.8,
+      }), i * 140);
     });
   }
 
   playLose(): void {
-    // 敗北: 下降 3 音
+    // 敗北: 3 音下降(C-G-C 低下)
     const notes = [523, 392, 261];
     notes.forEach((freq, i) => {
-      setTimeout(() => this.playTone({ freq, type: 'triangle', durMs: 280, volume: 0.7 }), i * 200);
+      setTimeout(() => this.playTone({
+        freq, type: 'triangle', durMs: 320, volume: 0.6,
+      }), i * 220);
     });
   }
 }

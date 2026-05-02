@@ -521,6 +521,11 @@ const sketch = (p: p5) => {
 
 // ===== UI ボタンバインド =====
 function bindUiButtons(): void {
+  // 初回ユーザーインタラクション後に BGM 開始(ブラウザの autoplay policy 対応)
+  document.addEventListener('click', () => {
+    soundManager.startBgm();
+  }, { once: true });
+
   // タイトル画面
   document.getElementById('title-quickstart')?.addEventListener('click', () => {
     startNewGame(currentSettings);
