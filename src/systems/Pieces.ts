@@ -30,11 +30,15 @@ export function pieceAt(board: BoardState, col: number, row: number): Piece | nu
 export interface MoveCandidate {
   col: number;
   row: number;
-  // 1 マス進行 / 2 マス進行 / 斜め進行
-  kind: 'forward1' | 'forward2' | 'diag';
+  // 1 マス進行 / 2 マス進行 / 斜め進行 / 斜め 2 マス
+  kind: 'forward1' | 'forward2' | 'diag' | 'diag2';
+  // 経路上で空でなければ移動不可となるマス(障害物無視しない)
+  passThrough?: { col: number; row: number };
 }
 
 // 駒種類別の動き候補を返す(空の場合は移動不可)
+//   passThrough があれば、経路上のマスが空でなければその候補は無効化される
+//   (実際の判定は AutoAdvance.chooseAction 内のフィルタで行う)
 export function getMoveCandidates(piece: Piece, config: GameConfig): MoveCandidate[] {
   const type = getPieceType(config, piece.typeId);
   if (type.moveStyle === 'stationary') return [];
@@ -42,9 +46,20 @@ export function getMoveCandidates(piece: Piece, config: GameConfig): MoveCandida
   const candidates: MoveCandidate[] = [];
 
   const fwd1 = { col: piece.col, row: piece.row + dy, kind: 'forward1' as const };
-  const fwd2 = { col: piece.col, row: piece.row + 2 * dy, kind: 'forward2' as const };
+  const fwd2 = {
+    col: piece.col, row: piece.row + 2 * dy, kind: 'forward2' as const,
+    passThrough: { col: piece.col, row: piece.row + dy },
+  };
   const diagL = { col: piece.col - 1, row: piece.row + dy, kind: 'diag' as const };
   const diagR = { col: piece.col + 1, row: piece.row + dy, kind: 'diag' as const };
+  const diagL2 = {
+    col: piece.col - 2, row: piece.row + 2 * dy, kind: 'diag2' as const,
+    passThrough: { col: piece.col - 1, row: piece.row + dy },
+  };
+  const diagR2 = {
+    col: piece.col + 2, row: piece.row + 2 * dy, kind: 'diag2' as const,
+    passThrough: { col: piece.col + 1, row: piece.row + dy },
+  };
 
   switch (type.moveStyle as MoveStyle) {
     case 'forwardWithDiag':
@@ -59,11 +74,33 @@ export function getMoveCandidates(piece: Piece, config: GameConfig): MoveCandida
     case 'forwardOnlyHeavy':
       candidates.push(fwd1);
       break;
+    case 'assassin':
+      candidates.push(diagL, diagR, diagL2, diagR2);
+      break;
     case 'stationary':
       break;
   }
 
   return candidates.filter((c) => isInBoard(c.col, c.row, config.rules.boardSize));
+}
+
+// 槍兵の横攻撃マス(動かずに攻撃できる横 1 マス)
+//   spearReach 攻撃範囲のうち、移動候補にカバーされない「横」マスのみ返す
+export function getSpearSideAttackCells(
+  piece: Piece,
+  config: GameConfig,
+): Array<{ col: number; row: number }> {
+  const type = getPieceType(config, piece.typeId);
+  if (type.attackRange !== 'spearReach') return [];
+  const cells: Array<{ col: number; row: number }> = [];
+  for (const dx of [-1, 1]) {
+    const col = piece.col + dx;
+    const row = piece.row;
+    if (isInBoard(col, row, config.rules.boardSize)) {
+      cells.push({ col, row });
+    }
+  }
+  return cells;
 }
 
 // 攻撃範囲内のマス一覧(現在位置を起点に)
@@ -78,6 +115,13 @@ export function getAttackRangeCells(piece: Piece, config: GameConfig): Array<{ c
       cells.push({ col: piece.col, row: piece.row + dy });
       cells.push({ col: piece.col - 1, row: piece.row + dy });
       cells.push({ col: piece.col + 1, row: piece.row + dy });
+      break;
+    case 'spearReach':
+      cells.push({ col: piece.col, row: piece.row + dy });
+      cells.push({ col: piece.col - 1, row: piece.row + dy });
+      cells.push({ col: piece.col + 1, row: piece.row + dy });
+      cells.push({ col: piece.col - 1, row: piece.row });
+      cells.push({ col: piece.col + 1, row: piece.row });
       break;
     case 'rangedForward':
       cells.push({ col: piece.col, row: piece.row + dy });

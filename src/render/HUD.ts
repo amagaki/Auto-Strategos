@@ -82,9 +82,13 @@ export function renderShop(
 
 // 動きグリッドを HTML で表現(Onitama 流): forward 方向の点群
 export function moveGridHtml(moveStyle: string, attackRange: string): string {
-  const rangedBadge = attackRange === 'rangedForward'
-    ? '<span class="ranged-badge">⤴</span>'
-    : '';
+  // 射程バッジ: rangedForward は「射程 2」を明記、spearReach は「横払い」を明記
+  let rangedBadge = '';
+  if (attackRange === 'rangedForward') {
+    rangedBadge = '<span class="ranged-badge" title="遠距離攻撃 2 マス">⤴ 射2</span>';
+  } else if (attackRange === 'spearReach') {
+    rangedBadge = '<span class="ranged-badge" title="前 + 横にも攻撃可能">↔</span>';
+  }
   let rows: string[];
   switch (moveStyle) {
     case 'forwardWithDiag':
@@ -98,6 +102,9 @@ export function moveGridHtml(moveStyle: string, attackRange: string): string {
       break;
     case 'forwardOnlyHeavy':
       rows = ['○●○'];
+      break;
+    case 'assassin':
+      rows = ['●○●', '●○●'];  // 上から: 斜め前 2、斜め前 1
       break;
     case 'stationary':
       rows = ['―'];

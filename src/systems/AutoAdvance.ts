@@ -11,6 +11,7 @@ import {
   forwardProgress,
   getMoveCandidates,
   getPieceType,
+  getSpearSideAttackCells,
   isInBoard,
   pieceAt,
 } from './Pieces';
@@ -18,10 +19,24 @@ import { resolveMelee, resolveRanged } from './Combat';
 import { reachedGoal, removePieceById } from './Board';
 
 interface ChosenAction {
-  kind: 'rangedAttack' | 'meleeAttack' | 'move' | 'stay';
+  // spearSideAttack: 槍兵の横払い(動かない攻撃)
+  kind: 'rangedAttack' | 'spearSideAttack' | 'meleeAttack' | 'move' | 'stay';
   targetCol?: number;
   targetRow?: number;
   targetPieceId?: number;
+}
+
+// 撃破統計の記録(リザルト画面用)
+function recordKill(state: GameState, attacker: Piece, victim: Piece): void {
+  if (victim.typeId === 'obstacle') {
+    state.stats.obstaclesDestroyed++;
+    return;
+  }
+  if (attacker.side === 'player' && victim.side === 'enemy') {
+    state.stats.playerKills++;
+  } else if (attacker.side === 'enemy' && victim.side === 'player') {
+    state.stats.enemyKills++;
+  }
 }
 
 // 弓兵の遠距離攻撃: 前方 1 マス → 前方 2 マスを順に走査、最初に出会った敵が対象。味方で遮られたら不発。
@@ -53,11 +68,33 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
     return { kind: 'rangedAttack', targetPieceId: ranged.id, targetCol: ranged.col, targetRow: ranged.row };
   }
 
+  // 槍兵の横払い: 横 1 マスに敵がいれば攻撃のみ実行(移動しない)
+  if (type.attackRange === 'spearReach') {
+    const sideCells = getSpearSideAttackCells(piece, config);
+    for (const cell of sideCells) {
+      const occ = pieceAt(board, cell.col, cell.row);
+      if (occ && occ.side !== piece.side) {
+        return {
+          kind: 'spearSideAttack',
+          targetPieceId: occ.id,
+          targetCol: cell.col,
+          targetRow: cell.row,
+        };
+      }
+    }
+  }
+
   const candidates = getMoveCandidates(piece, config);
-  // 味方で塞がれたマスは除外。敵がいるマスは move-attack の候補として残す
+  // 味方で塞がれたマス、または passThrough の途中マスが占有されている場合は除外
   const filtered = candidates.filter((c) => {
     const occ = pieceAt(board, c.col, c.row);
-    return !occ || occ.side !== piece.side;
+    if (occ && occ.side === piece.side) return false;
+    // 経路の途中マスチェック(暗殺者の斜め前 2、騎兵の前 2)
+    if (c.passThrough) {
+      const through = pieceAt(board, c.passThrough.col, c.passThrough.row);
+      if (through) return false;
+    }
+    return true;
   });
 
   if (filtered.length === 0) return { kind: 'stay' };
@@ -141,6 +178,28 @@ export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
         atRow: target.row,
       });
       if (result.defenderDestroyed) {
+        recordKill(state, piece, target);
+        removePieceById(state.board, target.id);
+      }
+      continue;
+    }
+
+    // 槍兵の横払い(動かない攻撃、片側ダメージ)
+    if (action.kind === 'spearSideAttack' && action.targetPieceId !== undefined) {
+      const target = state.board.pieces.find((p) => p.id === action.targetPieceId);
+      if (!target) continue;
+      const result = resolveRanged(piece, target, state.config);  // ranged と同じ計算式
+      step.combatEvents.push({
+        attackerId: piece.id,
+        defenderId: target.id,
+        damage: result.defenderDamageTaken,
+        defenderHpAfter: result.defenderHpAfter,
+        defenderDestroyed: result.defenderDestroyed,
+        atCol: target.col,
+        atRow: target.row,
+      });
+      if (result.defenderDestroyed) {
+        recordKill(state, piece, target);
         removePieceById(state.board, target.id);
       }
       continue;
@@ -179,6 +238,7 @@ export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
       });
       // defender 死亡 → 退場、attacker 移動
       if (result.defenderDestroyed && !result.attackerDestroyed) {
+        recordKill(state, piece, target);
         removePieceById(state.board, target.id);
         step.pieceMoves.push({
           pieceId: piece.id,
@@ -193,9 +253,12 @@ export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
         piece.row = action.targetRow;
       } else if (result.attackerDestroyed && !result.defenderDestroyed) {
         // attacker のみ死亡 → 退場、defender はそのまま
+        recordKill(state, target, piece);
         removePieceById(state.board, piece.id);
       } else if (result.attackerDestroyed && result.defenderDestroyed) {
         // 両者死亡
+        recordKill(state, piece, target);
+        recordKill(state, target, piece);
         removePieceById(state.board, piece.id);
         removePieceById(state.board, target.id);
       }

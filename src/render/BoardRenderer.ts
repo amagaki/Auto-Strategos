@@ -195,6 +195,11 @@ function drawMoveGrid(
     case 'forwardOnlyHeavy':
       row1 = [false, true, false];
       break;
+    case 'assassin':
+      // 斜め前 1 / 斜め前 2(中央列は不可)
+      row1 = [true, false, true];
+      row2 = [true, false, true];
+      break;
     default:
       return;
   }
@@ -204,10 +209,32 @@ function drawMoveGrid(
     drawGridRow(p, xCols, row2Y, row2, sideColor, inactiveColor, aByte, cellSize);
   }
 
-  // 弓兵の遠距離攻撃マーク(グリッドの右脇に小さい弓記号)
+  // 弓兵の遠距離攻撃マーク(グリッドの右脇に小さい弓記号 + "2")
   if (type.attackRange === 'rangedForward') {
     drawSmallBow(p, pos.x + cellSize * 2.4, row1Y, dir, sideColor, aByte);
   }
+  // 槍兵の横払いマーク(↔ 記号)
+  if (type.attackRange === 'spearReach') {
+    drawSpearReachMark(p, pos.x + cellSize * 2.4, row1Y, sideColor, aByte);
+  }
+}
+
+// 槍兵の横払い表示(↔ 風)
+function drawSpearReachMark(
+  p: p5,
+  x: number,
+  y: number,
+  color: number[],
+  alpha: number,
+): void {
+  p.push();
+  p.noStroke();
+  p.fill(color[0], color[1], color[2], alpha);
+  p.textSize(11);
+  p.textStyle(p.BOLD);
+  p.textAlign(p.CENTER, p.CENTER);
+  p.text('↔', x, y);
+  p.pop();
 }
 
 function drawGridRow(
@@ -272,7 +299,7 @@ function drawPieceStats(
   }
 }
 
-// 弓兵の遠距離マーク(小さい弓型)
+// 弓兵の遠距離マーク(弓型 + 射程数値)
 function drawSmallBow(
   p: p5,
   x: number,
@@ -284,15 +311,23 @@ function drawSmallBow(
   p.push();
   p.noFill();
   p.stroke(color[0], color[1], color[2], alpha);
-  p.strokeWeight(1.2);
-  // 弧
+  p.strokeWeight(1.5);
+  // 弧(少し大きく)
   if (dir < 0) {
-    p.arc(x, y, 10, 10, Math.PI * 0.7, Math.PI * 1.3);
+    p.arc(x, y, 12, 12, Math.PI * 0.7, Math.PI * 1.3);
   } else {
-    p.arc(x, y, 10, 10, -Math.PI * 0.3, Math.PI * 0.3);
+    p.arc(x, y, 12, 12, -Math.PI * 0.3, Math.PI * 0.3);
   }
   // 矢
-  p.line(x - 3, y, x + 3, y);
+  p.strokeWeight(2);
+  p.line(x - 4, y, x + 4, y);
+  // 射程数値「2」を弓の脇に
+  p.noStroke();
+  p.fill(color[0], color[1], color[2], alpha);
+  p.textSize(9);
+  p.textStyle(p.BOLD);
+  p.textAlign(p.LEFT, p.CENTER);
+  p.text('2', x + 7, y);
   p.pop();
 }
 
@@ -422,6 +457,11 @@ export function drawMoveHighlights(
   for (const c of candidates) {
     const occ = pieceAt(board, c.col, c.row);
     if (occ && occ.side === piece.side) continue;  // 同陣営に塞がれている
+    // passThrough: 経路途中マスが占有されていれば候補から除外
+    if (c.passThrough) {
+      const through = pieceAt(board, c.passThrough.col, c.passThrough.row);
+      if (through) continue;
+    }
     const isAttack = !!occ;
     const x = colToX(c.col);
     const y = rowToY(c.row, boardSize);
@@ -452,6 +492,26 @@ export function drawMoveHighlights(
       p.rect(x + 8, y + 8, CELL_SIZE - 16, CELL_SIZE - 16, 6);
       p.noStroke();
       break;
+    }
+  }
+
+  // 槍兵の横払い対象も表示
+  if (type.attackRange === 'spearReach') {
+    for (const dx of [-1, 1]) {
+      const col = piece.col + dx;
+      const row = piece.row;
+      if (!isInBoard(col, row, boardSize)) continue;
+      const occ = pieceAt(board, col, row);
+      if (!occ) continue;
+      if (occ.side === piece.side) continue;
+      // 横払いターゲット: 緑枠(近接攻撃可能を強調)
+      const x = colToX(col);
+      const y = rowToY(row, boardSize);
+      p.noFill();
+      p.stroke(120, 220, 140, 220);
+      p.strokeWeight(3);
+      p.rect(x + 8, y + 8, CELL_SIZE - 16, CELL_SIZE - 16, 6);
+      p.noStroke();
     }
   }
   p.pop();
