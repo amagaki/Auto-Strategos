@@ -39,6 +39,7 @@ import {
   renderLegend,
 } from './render/HUD';
 import { predictPath, type PredictPath } from './systems/HoverPredict';
+import { soundManager } from './audio/SoundManager';
 
 const config = configData as GameConfig;
 
@@ -234,6 +235,11 @@ function applySettingsToUI(): void {
   // チェックボックス(プレイヤー編成 + AI 編成)
   populateLoadoutChecklist();
   populateAiLoadoutChecklist();
+  // 音量スライダー
+  const se = document.getElementById('se-volume') as HTMLInputElement | null;
+  const bgm = document.getElementById('bgm-volume') as HTMLInputElement | null;
+  if (se) se.value = String(Math.round(soundManager.getSeVolume() * 100));
+  if (bgm) bgm.value = String(Math.round(soundManager.getBgmVolume() * 100));
 }
 
 function setRadio(name: string, value: string): void {
@@ -351,8 +357,26 @@ const sketch = (p: p5) => {
     }
 
     const prevPhase = state.phase;
+    const prevAnimStep = state.animation?.currentStepIndex ?? -1;
     if (state.phase === 'animating') {
       tickAnimation(state, dt);
+    }
+    // アニメ step 遷移時に SE 再生(spam 防止: 1 step = 1 SE 程度)
+    if (state.animation && state.animation.currentStepIndex !== prevAnimStep) {
+      const newIdx = state.animation.currentStepIndex;
+      if (newIdx > 0 && newIdx <= state.animation.steps.length) {
+        const finishedStep = state.animation.steps[newIdx - 1];
+        if (finishedStep) {
+          if (finishedStep.combatEvents.some((e) => e.defenderDestroyed)) {
+            soundManager.playDestroy();
+          } else if (finishedStep.combatEvents.length > 0) {
+            soundManager.playAttack();
+          }
+          if (finishedStep.reachEvents.length > 0) {
+            soundManager.playReach();
+          }
+        }
+      }
     }
 
     // アニメ終了直後の遷移処理
@@ -360,6 +384,9 @@ const sketch = (p: p5) => {
       rebindShop();
       updateButtons(state);
       if (state.phase === 'finished' && state.result) {
+        // 勝敗 SE
+        if (state.result === 'win') soundManager.playWin();
+        else if (state.result === 'lose') soundManager.playLose();
         // リザルト画面へ自動遷移
         showResultScreen();
         return;
@@ -420,6 +447,7 @@ const sketch = (p: p5) => {
     if (state.selectedPieceTypeId) {
       const placed = tryPlacePieceAt(state, cell.col, cell.row);
       if (placed) {
+        soundManager.playPlace();
         rebindShop();
         updateButtons(state);
         invalidatePredict();
@@ -471,9 +499,24 @@ function bindUiButtons(): void {
     startNewGame(currentSettings);
   });
 
+  // 音量スライダー(変更即反映 + 保存)
+  document.getElementById('se-volume')?.addEventListener('input', (ev) => {
+    const v = parseInt((ev.target as HTMLInputElement).value, 10);
+    soundManager.setSeVolume(v / 100);
+  });
+  document.getElementById('bgm-volume')?.addEventListener('input', (ev) => {
+    const v = parseInt((ev.target as HTMLInputElement).value, 10);
+    soundManager.setBgmVolume(v / 100);
+  });
+  // SE 音量を変えたら試聴音
+  document.getElementById('se-volume')?.addEventListener('change', () => {
+    soundManager.playClick();
+  });
+
   // ゲーム画面
   document.getElementById('go-btn')?.addEventListener('click', () => {
     if (!state) return;
+    soundManager.playGo();
     startAdvance(state);
     updateButtons(state);
     invalidatePredict();
@@ -481,6 +524,7 @@ function bindUiButtons(): void {
   document.getElementById('reroll-btn')?.addEventListener('click', () => {
     if (!state) return;
     if (tryReroll(state)) {
+      soundManager.playClick();
       rebindShop();
       updateButtons(state);
       invalidatePredict();
