@@ -41,7 +41,7 @@ import {
 import { predictPath, type PredictPath } from './systems/HoverPredict';
 import { soundManager } from './audio/SoundManager';
 import { trackEvent, Events } from './analytics';
-import { initLang, setLang, t, applyI18nToDom } from './i18n';
+import { initLang, setLang, t, applyI18nToDom, pieceName } from './i18n';
 
 const config = configData as GameConfig;
 
@@ -178,7 +178,7 @@ function populateLoadoutChecklist(): void {
       currentSettings.loadoutPreset.includes(type.id);
     cb.addEventListener('change', updateLoadoutSummary);
     label.appendChild(cb);
-    label.appendChild(document.createTextNode(` ${type.symbol} ${type.name} (${type.cost}g)`));
+    label.appendChild(document.createTextNode(` ${type.symbol} ${pieceName(type.id)} (${type.cost}g)`));
     container.appendChild(label);
   }
   updateLoadoutSummary();
@@ -199,7 +199,7 @@ function populateAiLoadoutChecklist(): void {
     // AI 編成は空 = 難易度デフォルト適用なので、空配列ならチェックなし
     cb.checked = currentSettings.aiLoadoutPreset.includes(type.id);
     label.appendChild(cb);
-    label.appendChild(document.createTextNode(` ${type.symbol} ${type.name} (${type.cost}g)`));
+    label.appendChild(document.createTextNode(` ${type.symbol} ${pieceName(type.id)} (${type.cost}g)`));
     container.appendChild(label);
   }
 }

@@ -57,11 +57,16 @@ export function t(key: string): string {
   return typeof cursor === 'string' ? cursor : key;
 }
 
-// HTML 内の data-i18n 属性を一括置換
+// HTML 内の data-i18n 属性を一括置換(textContent)
+// data-i18n-html 属性は innerHTML で置換(マークアップ含むコンテンツ用)
 export function applyI18nToDom(): void {
   document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
     const key = el.getAttribute('data-i18n');
     if (key) el.textContent = t(key);
+  });
+  document.querySelectorAll<HTMLElement>('[data-i18n-html]').forEach((el) => {
+    const key = el.getAttribute('data-i18n-html');
+    if (key) el.innerHTML = t(key);
   });
 }
 

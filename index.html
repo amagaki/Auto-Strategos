@@ -550,10 +550,12 @@
 
         <fieldset class="setting-group">
           <legend data-i18n="settings.audio">音量</legend>
-          <label data-i18n="settings.seVolume">SE 音量
+          <label style="display: block;">
+            <span data-i18n="settings.seVolume">SE 音量</span>
             <input type="range" id="se-volume" min="0" max="100" value="60" style="width: 100%; margin-top: 4px;">
           </label>
-          <label data-i18n="settings.bgmVolume">BGM 音量
+          <label style="display: block; margin-top: 6px;">
+            <span data-i18n="settings.bgmVolume">BGM 音量</span>
             <input type="range" id="bgm-volume" min="0" max="100" value="40" style="width: 100%; margin-top: 4px;">
           </label>
         </fieldset>
@@ -652,37 +654,8 @@
   <!-- ======================== チュートリアルモーダル ======================== -->
   <div id="tutorial-modal" class="modal-overlay">
     <div class="modal-content">
-      <h2>Auto-Strategos の遊び方</h2>
-
-      <h3>🎯 目的</h3>
-      <p>あなたの駒を <b>敵陣最奥</b>(画面上端)に <b>3 体到達</b> させて勝利。<br>
-      逆に敵駒に <b>自陣最奥</b>(画面下端)に 3 体到達されたら敗北。</p>
-
-      <h3>🎮 1 サイクルの流れ</h3>
-      <ol>
-        <li>下の <b>shop</b> で駒のカードをクリック → 選択</li>
-        <li>盤面の <b>自陣青背景マス</b>(下 2 行)をクリック → 配置 + 所持金消費</li>
-        <li>必要なら他の駒も購入・配置(リロール 1g で shop 入替)</li>
-        <li><b>[Go &gt;]</b> ボタンで <b>3 ターン</b> 自動進行</li>
-        <li>全駒が動き、衝突したら自動戦闘</li>
-        <li>次サイクルへ(基本収入 +3g + 利息)</li>
-      </ol>
-
-      <h3>💡 コツ</h3>
-      <ul>
-        <li>駒に <b>マウスホバー</b> で動ける先のセルがハイライト</li>
-        <li>同じホバーで <b>3 ターン先の予測経路</b> も矢印で表示</li>
-        <li>右の <b>凡例パネル</b> で各駒の能力を確認できる</li>
-        <li>自陣の壁(<b>■</b>)は同盟扱い、攻撃しない</li>
-        <li>敵陣の壁は破壊して進む必要あり(HP 3)</li>
-        <li>5+ 駒それぞれ動き方・HP・攻撃力が違う(凡例参照)</li>
-        <li>弓兵は遠距離攻撃あり(味方に遮られると不発)</li>
-      </ul>
-
-      <p style="margin-top: 16px; color: #b8a888;">
-        この説明はゲーム画面の <b>「?」ボタン</b> や、タイトル画面の <b>「遊び方」</b> から再表示できます。
-      </p>
-
+      <h2 data-i18n="tutorial.title">Auto-Strategos の遊び方</h2>
+      <div data-i18n-html="tutorial.body"><!-- populated by i18n --></div>
       <div class="modal-actions">
         <button id="tutorial-close" class="btn-primary" data-i18n="common.close">閉じる</button>
       </div>
@@ -693,56 +666,7 @@
   <div id="privacy-modal" class="modal-overlay">
     <div class="modal-content">
       <h2 data-i18n="privacy.title">プライバシーポリシー</h2>
-
-      <h3>📊 アクセス解析について</h3>
-      <p>
-        本サイトは、ユーザーの利用状況を把握するために <b>Google Analytics 4 (GA4)</b> を使用しています。
-        GA4 は Cookie や類似技術を使用してデータを収集します。収集される情報には以下が含まれます:
-      </p>
-      <ul>
-        <li>アクセス日時、滞在時間</li>
-        <li>使用しているブラウザ・OS</li>
-        <li>画面サイズ・デバイス種別</li>
-        <li>ゲーム内の特定イベント(ゲーム開始・勝敗・設定変更等)</li>
-      </ul>
-      <p>
-        IP アドレスは <b>匿名化処理</b>(IP Anonymization)を有効にしており、特定個人を識別できる情報は収集しません。
-      </p>
-
-      <h3>🍪 Cookie について</h3>
-      <p>
-        本サイトは、設定値の保存(プレイヤーの好み)に <b>localStorage</b> を使用しています。これはサーバーに送信されません。
-        GA4 は別途 Cookie を使用しますが、これも個人特定情報は含みません。
-      </p>
-
-      <h3>🚫 サードパーティーへの提供</h3>
-      <p>
-        Google Analytics で収集された統計情報は、Google 社のプライバシーポリシーに基づいて処理されます。
-        本サイト運営者は、ユーザー個人を特定する情報を第三者に提供しません。
-      </p>
-
-      <h3>⚙️ オプトアウト</h3>
-      <p>
-        Google Analytics の追跡を拒否したい場合は、以下のいずれかの方法をご利用ください:
-      </p>
-      <ul>
-        <li>ブラウザ設定で Cookie をブロックする</li>
-        <li>
-          <a href="https://tools.google.com/dlpage/gaoptout?hl=ja" target="_blank" rel="noopener" style="color: #6a4818;">
-            Google Analytics オプトアウト アドオン
-          </a>を使用する
-        </li>
-      </ul>
-
-      <h3>📧 連絡先</h3>
-      <p>
-        本ポリシーに関するお問い合わせは、リポジトリの Issue 等を通じてお願いします。
-      </p>
-
-      <p style="margin-top: 16px; color: var(--text-secondary); font-size: 12px;">
-        最終更新: 2026-05-02
-      </p>
-
+      <div data-i18n-html="privacy.body"><!-- populated by i18n --></div>
       <div class="modal-actions">
         <button id="privacy-close" class="btn-primary" data-i18n="common.close">閉じる</button>
       </div>
