@@ -138,7 +138,11 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
   return { kind: 'move', targetCol: chosen.cand.col, targetRow: chosen.cand.row };
 }
 
-// 1 ターン進行: 全駒を順に処理し、AnimationStep を生成
+// 1 ターン進行: 2 段階処理で AnimationStep を生成
+//   Phase 1: 全駒のアクション決定(ボード状態スナップショット時点)
+//   Phase 2A: 遠距離攻撃 + 槍兵横払い を「同時解決」(相打ち成立)
+//   Phase 2B: melee + move を順次処理(衝突は順序的に正当化)
+//   Phase 3: 到達判定
 export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
   const step: AnimationStep = {
     turnIndex,
@@ -150,62 +154,94 @@ export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
     enemyReachAfter: 0,
   };
 
-  // 処理順: 前進度の高い順(進んでいる駒から)。両陣営混合。
+  // 処理順(melee/move 用): 前進度の高い順
   const pieces = [...state.board.pieces].sort((a, b) => {
     return forwardProgress(b, b.side, state.config.rules.boardSize) -
       forwardProgress(a, a.side, state.config.rules.boardSize);
   });
 
+  // === Phase 1: 全駒のアクション決定(同時撮影、ボード状態は変更しない) ===
+  const decisions: Array<{ piece: Piece; action: ChosenAction }> = [];
   for (const piece of pieces) {
     if (piece.hp <= 0) continue;
-    if (state.board.pieces.indexOf(piece) < 0) continue;  // 既に消えた
-
     const action = chooseAction(piece, state.board, state.config);
+    decisions.push({ piece, action });
+  }
 
+  // === Phase 2A: 遠距離 + 槍兵横払い を同時解決 ===
+  // 各 defender に蓄積するダメージとイベント情報
+  type RangedAttack = {
+    attacker: Piece;
+    defender: Piece;
+    damage: number;
+    eventRef: AnimationStep['combatEvents'][number];
+  };
+  const rangedAttacks: RangedAttack[] = [];
+
+  for (const { piece, action } of decisions) {
+    if (action.kind !== 'rangedAttack' && action.kind !== 'spearSideAttack') continue;
+    if (action.targetPieceId === undefined) continue;
+    const target = state.board.pieces.find((p) => p.id === action.targetPieceId);
+    if (!target || target.hp <= 0) continue;
+    const attackerType = getPieceType(state.config, piece.typeId);
+    const damage = attackerType.attack;
+    // event はプレースホルダで先に push、後で hpAfter/destroyed を更新
+    const evt = {
+      attackerId: piece.id,
+      defenderId: target.id,
+      damage,
+      defenderHpAfter: target.hp,
+      defenderDestroyed: false,
+      atCol: target.col,
+      atRow: target.row,
+    };
+    step.combatEvents.push(evt);
+    rangedAttacks.push({ attacker: piece, defender: target, damage, eventRef: evt });
+  }
+
+  // ダメージ集計 + 一括適用
+  const damageMap = new Map<number, number>();
+  for (const ra of rangedAttacks) {
+    damageMap.set(ra.defender.id, (damageMap.get(ra.defender.id) ?? 0) + ra.damage);
+  }
+  for (const [defenderId, totalDmg] of damageMap) {
+    const def = state.board.pieces.find((p) => p.id === defenderId);
+    if (!def) continue;
+    def.hp -= totalDmg;
+  }
+
+  // event の hpAfter/destroyed を最終値で更新
+  for (const ra of rangedAttacks) {
+    const def = state.board.pieces.find((p) => p.id === ra.defender.id);
+    if (def) {
+      ra.eventRef.defenderHpAfter = def.hp;
+      ra.eventRef.defenderDestroyed = def.hp <= 0;
+    }
+  }
+
+  // 死亡駒の除去 + kill 記録(複数攻撃者がいる場合は最初の attacker を kill 記録者に)
+  const seenKilled = new Set<number>();
+  for (const ra of rangedAttacks) {
+    const def = state.board.pieces.find((p) => p.id === ra.defender.id);
+    if (!def) continue;
+    if (def.hp > 0) continue;
+    if (seenKilled.has(def.id)) continue;
+    seenKilled.add(def.id);
+    recordKill(state, ra.attacker, def);
+    removePieceById(state.board, def.id);
+  }
+
+  // === Phase 2B: melee + move を順次処理(現存駒のみ) ===
+  for (const { piece, action } of decisions) {
+    if (piece.hp <= 0) continue;
+    if (state.board.pieces.indexOf(piece) < 0) continue;
     if (action.kind === 'stay') continue;
-
-    if (action.kind === 'rangedAttack' && action.targetPieceId !== undefined) {
-      const target = state.board.pieces.find((p) => p.id === action.targetPieceId);
-      if (!target) continue;
-      const result = resolveRanged(piece, target, state.config);
-      step.combatEvents.push({
-        attackerId: piece.id,
-        defenderId: target.id,
-        damage: result.defenderDamageTaken,
-        defenderHpAfter: result.defenderHpAfter,
-        defenderDestroyed: result.defenderDestroyed,
-        atCol: target.col,
-        atRow: target.row,
-      });
-      if (result.defenderDestroyed) {
-        recordKill(state, piece, target);
-        removePieceById(state.board, target.id);
-      }
-      continue;
-    }
-
-    // 槍兵の横払い(動かない攻撃、片側ダメージ)
-    if (action.kind === 'spearSideAttack' && action.targetPieceId !== undefined) {
-      const target = state.board.pieces.find((p) => p.id === action.targetPieceId);
-      if (!target) continue;
-      const result = resolveRanged(piece, target, state.config);  // ranged と同じ計算式
-      step.combatEvents.push({
-        attackerId: piece.id,
-        defenderId: target.id,
-        damage: result.defenderDamageTaken,
-        defenderHpAfter: result.defenderHpAfter,
-        defenderDestroyed: result.defenderDestroyed,
-        atCol: target.col,
-        atRow: target.row,
-      });
-      if (result.defenderDestroyed) {
-        recordKill(state, piece, target);
-        removePieceById(state.board, target.id);
-      }
-      continue;
-    }
+    if (action.kind === 'rangedAttack' || action.kind === 'spearSideAttack') continue;  // 既に解決
 
     if (action.kind === 'move' && action.targetCol !== undefined && action.targetRow !== undefined) {
+      // 同ターン内に別の駒が target に動いていれば移動キャンセル
+      const occ = pieceAt(state.board, action.targetCol, action.targetRow);
+      if (occ && occ.id !== piece.id) continue;
       step.pieceMoves.push({
         pieceId: piece.id,
         fromCol: piece.col,
@@ -223,7 +259,24 @@ export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
     if (action.kind === 'meleeAttack' && action.targetPieceId !== undefined &&
       action.targetCol !== undefined && action.targetRow !== undefined) {
       const target = state.board.pieces.find((p) => p.id === action.targetPieceId);
-      if (!target) continue;
+      if (!target) {
+        // ターゲットが Phase 2A の遠距離攻撃で既に倒されている場合
+        // → 空マスならそこへ移動、別駒が居れば諦め
+        const occ = pieceAt(state.board, action.targetCol, action.targetRow);
+        if (occ && occ.id !== piece.id) continue;
+        step.pieceMoves.push({
+          pieceId: piece.id,
+          fromCol: piece.col,
+          fromRow: piece.row,
+          toCol: action.targetCol,
+          toRow: action.targetRow,
+          typeId: piece.typeId,
+          side: piece.side,
+        });
+        piece.col = action.targetCol;
+        piece.row = action.targetRow;
+        continue;
+      }
       const fromCol = piece.col;
       const fromRow = piece.row;
       const result = resolveMelee(piece, target, state.config);
