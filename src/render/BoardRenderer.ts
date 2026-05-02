@@ -1,6 +1,7 @@
 import type p5 from 'p5';
 import type { Piece, PieceTypeData, GameConfig, GameState, BoardState } from '../types';
 import { getPieceType, getMoveCandidates, pieceAt, isInBoard, forwardDelta } from '../systems/Pieces';
+import { THEME, hexToRgb } from './theme';
 
 export const BOARD_PADDING = 32;
 export const CELL_SIZE = 80;
@@ -32,15 +33,19 @@ export function pixelToCell(mx: number, my: number, boardSize = 8): { col: numbe
   return { col, row };
 }
 
-// 盤面背景・グリッド・ゴールライン・配置ゾーン
+// 盤面背景・グリッド・ゴールライン・配置ゾーン(ソフト中世風)
 export function drawBoardBackground(p: p5, config: GameConfig): void {
   const size = config.rules.boardSize;
 
   p.push();
-  // キャンバス全体を暗色で塗る
+  // キャンバス全体を紙ベースで塗る
+  const bgRGB = hexToRgb(THEME.bgCanvas);
   p.noStroke();
-  p.fill(20, 18, 28);
+  p.fill(bgRGB[0], bgRGB[1], bgRGB[2]);
   p.rect(0, 0, p.width, p.height);
+
+  const cellLightRGB = hexToRgb(THEME.cellLight);
+  const cellDarkRGB = hexToRgb(THEME.cellDark);
 
   // 各セル
   for (let row = 0; row < size; row++) {
@@ -48,54 +53,49 @@ export function drawBoardBackground(p: p5, config: GameConfig): void {
       const x = colToX(col);
       const y = rowToY(row, size);
       const lightCell = (col + row) % 2 === 0;
+      const baseRGB = lightCell ? cellLightRGB : cellDarkRGB;
 
-      // 配置ゾーンの色味
-      let baseR = lightCell ? 70 : 50;
-      let baseG = lightCell ? 65 : 45;
-      let baseB = lightCell ? 55 : 38;
-
-      if (row <= config.rules.placementMaxRow) {
-        // 自陣ゾーン: 青寄り
-        baseR = lightCell ? 50 : 38;
-        baseG = lightCell ? 70 : 55;
-        baseB = lightCell ? 100 : 80;
-      } else if (row >= size - 1 - config.rules.placementMaxRow) {
-        // 敵陣ゾーン: 赤寄り
-        baseR = lightCell ? 100 : 80;
-        baseG = lightCell ? 60 : 45;
-        baseB = lightCell ? 60 : 45;
-      }
-
-      p.fill(baseR, baseG, baseB);
+      p.fill(baseRGB[0], baseRGB[1], baseRGB[2]);
       p.noStroke();
       p.rect(x, y, CELL_SIZE, CELL_SIZE);
 
-      // セル境界
-      p.stroke(30, 25, 20, 180);
+      // 配置ゾーンのオーバーレイ(自陣 = 青、敵陣 = 朱)
+      if (row <= config.rules.placementMaxRow) {
+        p.fill(58, 96, 144, 50);  // playerHighlight 系
+        p.rect(x, y, CELL_SIZE, CELL_SIZE);
+      } else if (row >= size - 1 - config.rules.placementMaxRow) {
+        p.fill(154, 58, 58, 50);  // enemy 系
+        p.rect(x, y, CELL_SIZE, CELL_SIZE);
+      }
+
+      // セル境界(木調)
+      p.stroke(122, 90, 58, 120);
       p.strokeWeight(1);
       p.noFill();
       p.rect(x, y, CELL_SIZE, CELL_SIZE);
     }
   }
 
-  // ゴールライン: row=0(プレイヤーが守る)/ row=7(プレイヤーが目指す)
+  // ゴールライン
   p.strokeWeight(4);
+  const goalPlayerRGB = hexToRgb(THEME.goalLinePlayer);
+  const goalEnemyRGB = hexToRgb(THEME.goalLineEnemy);
   // 自陣最奥(下端)
-  p.stroke(120, 180, 240);
+  p.stroke(goalPlayerRGB[0], goalPlayerRGB[1], goalPlayerRGB[2]);
   const yBottom = rowToY(0, size) + CELL_SIZE;
   p.line(BOARD_PADDING, yBottom, BOARD_PADDING + size * CELL_SIZE, yBottom);
   // 敵陣最奥(上端)
-  p.stroke(240, 120, 120);
+  p.stroke(goalEnemyRGB[0], goalEnemyRGB[1], goalEnemyRGB[2]);
   const yTop = rowToY(size - 1, size);
   p.line(BOARD_PADDING, yTop, BOARD_PADDING + size * CELL_SIZE, yTop);
 
-  // ゾーンラベル
+  // ゾーンラベル(濃色テキスト)
   p.noStroke();
   p.textAlign(p.CENTER, p.CENTER);
   p.textSize(11);
-  p.fill(180, 200, 240, 180);
+  const textRGB = hexToRgb(THEME.textPrimary);
+  p.fill(textRGB[0], textRGB[1], textRGB[2], 200);
   p.text('自陣(配置可)', p.width / 2, yBottom + 14);
-  p.fill(240, 180, 180, 180);
   p.text('敵陣最奥', p.width / 2, yTop - 14);
 
   p.pop();
@@ -115,7 +115,8 @@ export function drawPiece(
   const isObstacle = type.moveStyle === 'stationary';
 
   p.push();
-  const sideColor = piece.side === 'player' ? [120, 180, 240] : [240, 120, 120];
+  const sideHex = piece.side === 'player' ? THEME.playerPrimary : THEME.enemyPrimary;
+  const sideColor = hexToRgb(sideHex);
   const aByte = Math.round(alpha * 255);
 
   const PIECE_R = 22;  // 駒円半径(直径 44、CELL_SIZE 80 に対応)
@@ -169,8 +170,10 @@ function drawMoveGrid(
   alpha: number,
 ): void {
   const aByte = Math.round(alpha * 255);
-  const sideColor = piece.side === 'player' ? [200, 230, 255] : [255, 200, 200];
-  const inactiveColor: number[] = [100, 90, 80];
+  // グリッド点は陣営色の明るめバージョン(紙背景でも見えるように)
+  const sideHex = piece.side === 'player' ? THEME.playerLight : THEME.enemyLight;
+  const sideColor = hexToRgb(sideHex);
+  const inactiveColor: number[] = [150, 130, 110];  // セル枠と同系統の薄茶
   const dir = piece.side === 'player' ? -1 : 1;
 
   const cellSize = 9;
@@ -449,7 +452,8 @@ export function drawMoveHighlights(
   if (type.moveStyle === 'stationary') return;
   const boardSize = config.rules.boardSize;
 
-  const sideColor = piece.side === 'player' ? [120, 180, 240] : [240, 120, 120];
+  const sideHex = piece.side === 'player' ? THEME.playerPrimary : THEME.enemyPrimary;
+  const sideColor = hexToRgb(sideHex);
   const candidates = getMoveCandidates(piece, config);
 
   p.push();
@@ -466,9 +470,9 @@ export function drawMoveHighlights(
     const x = colToX(c.col);
     const y = rowToY(c.row, boardSize);
     if (isAttack) {
-      p.fill(255, 80, 80, 100);
+      p.fill(200, 60, 60, 110);
     } else {
-      p.fill(sideColor[0], sideColor[1], sideColor[2], 80);
+      p.fill(sideColor[0], sideColor[1], sideColor[2], 90);
     }
     p.rect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8, 8);
   }
