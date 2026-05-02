@@ -4,6 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Auto-Strategos / 進軍型オートストラテジー</title>
+
+  <!-- Google Analytics 4 (GA4) — 本番デプロイ前に GA_MEASUREMENT_ID を実 ID に置換 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    // GA_MEASUREMENT_ID をデプロイ時に実 ID(G-XXXXXXXXXX)に置換
+    gtag('config', 'GA_MEASUREMENT_ID', { 'anonymize_ip': true });
+  </script>
   <style>
     /* ===== 配色テーマ: ソフト中世風(紙テクスチャ + 木調) =====
        theme.ts の値と同期(p5 描画と一致させる) */
@@ -498,9 +508,10 @@
       <h1 class="game-title">Auto-Strategos</h1>
       <p class="game-subtitle">進軍型オートストラテジー</p>
       <div class="title-actions">
-        <button class="btn-primary" id="title-quickstart">すぐ始める</button>
-        <button class="btn-secondary" id="title-settings">ゲーム設定</button>
-        <button class="btn-tertiary" id="title-help">遊び方</button>
+        <button class="btn-primary" id="title-quickstart" data-i18n="title.quickstart">すぐ始める</button>
+        <button class="btn-secondary" id="title-settings" data-i18n="title.settings">ゲーム設定</button>
+        <button class="btn-tertiary" id="title-help" data-i18n="title.help">遊び方</button>
+        <button class="btn-tertiary" id="title-privacy" data-i18n="title.privacy" style="font-size: 12px; opacity: 0.85;">プライバシーポリシー</button>
       </div>
     </div>
   </section>
@@ -671,7 +682,67 @@
       </p>
 
       <div class="modal-actions">
-        <button id="tutorial-close" class="btn-primary">閉じる</button>
+        <button id="tutorial-close" class="btn-primary" data-i18n="common.close">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== プライバシーポリシーモーダル ======================== -->
+  <div id="privacy-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h2 data-i18n="privacy.title">プライバシーポリシー</h2>
+
+      <h3>📊 アクセス解析について</h3>
+      <p>
+        本サイトは、ユーザーの利用状況を把握するために <b>Google Analytics 4 (GA4)</b> を使用しています。
+        GA4 は Cookie や類似技術を使用してデータを収集します。収集される情報には以下が含まれます:
+      </p>
+      <ul>
+        <li>アクセス日時、滞在時間</li>
+        <li>使用しているブラウザ・OS</li>
+        <li>画面サイズ・デバイス種別</li>
+        <li>ゲーム内の特定イベント(ゲーム開始・勝敗・設定変更等)</li>
+      </ul>
+      <p>
+        IP アドレスは <b>匿名化処理</b>(IP Anonymization)を有効にしており、特定個人を識別できる情報は収集しません。
+      </p>
+
+      <h3>🍪 Cookie について</h3>
+      <p>
+        本サイトは、設定値の保存(プレイヤーの好み)に <b>localStorage</b> を使用しています。これはサーバーに送信されません。
+        GA4 は別途 Cookie を使用しますが、これも個人特定情報は含みません。
+      </p>
+
+      <h3>🚫 サードパーティーへの提供</h3>
+      <p>
+        Google Analytics で収集された統計情報は、Google 社のプライバシーポリシーに基づいて処理されます。
+        本サイト運営者は、ユーザー個人を特定する情報を第三者に提供しません。
+      </p>
+
+      <h3>⚙️ オプトアウト</h3>
+      <p>
+        Google Analytics の追跡を拒否したい場合は、以下のいずれかの方法をご利用ください:
+      </p>
+      <ul>
+        <li>ブラウザ設定で Cookie をブロックする</li>
+        <li>
+          <a href="https://tools.google.com/dlpage/gaoptout?hl=ja" target="_blank" rel="noopener" style="color: #6a4818;">
+            Google Analytics オプトアウト アドオン
+          </a>を使用する
+        </li>
+      </ul>
+
+      <h3>📧 連絡先</h3>
+      <p>
+        本ポリシーに関するお問い合わせは、リポジトリの Issue 等を通じてお願いします。
+      </p>
+
+      <p style="margin-top: 16px; color: var(--text-secondary); font-size: 12px;">
+        最終更新: 2026-05-02
+      </p>
+
+      <div class="modal-actions">
+        <button id="privacy-close" class="btn-primary" data-i18n="common.close">閉じる</button>
       </div>
     </div>
   </div>

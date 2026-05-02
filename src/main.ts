@@ -40,6 +40,7 @@ import {
 } from './render/HUD';
 import { predictPath, type PredictPath } from './systems/HoverPredict';
 import { soundManager } from './audio/SoundManager';
+import { trackEvent, Events } from './analytics';
 
 const config = configData as GameConfig;
 
@@ -137,6 +138,13 @@ function startNewGame(settings: GameSettings): void {
   renderLegend(state);
   updateHud(state);
   updateButtons(state);
+  trackEvent(Events.GAME_START, {
+    ai_strategy: settings.aiStrategy,
+    ai_difficulty: settings.aiDifficulty,
+    obstacle_pattern: settings.obstaclePattern,
+    player_loadout_count: settings.loadoutPreset.length,
+    ai_loadout_count: settings.aiLoadoutPreset.length,
+  });
 }
 
 function restartCurrentGame(): void {
@@ -387,6 +395,16 @@ const sketch = (p: p5) => {
         // 勝敗 SE
         if (state.result === 'win') soundManager.playWin();
         else if (state.result === 'lose') soundManager.playLose();
+        // GA4 イベント
+        const eventName = state.result === 'win' ? Events.GAME_WON
+          : state.result === 'lose' ? Events.GAME_LOST
+          : Events.GAME_DREW;
+        trackEvent(eventName, {
+          cycles: state.cycle,
+          player_reach: state.player.reachCount,
+          enemy_reach: state.enemy.reachCount,
+          player_kills: state.stats.playerKills,
+        });
         // リザルト画面へ自動遷移
         showResultScreen();
         return;
@@ -496,6 +514,11 @@ function bindUiButtons(): void {
   document.getElementById('settings-start')?.addEventListener('click', () => {
     currentSettings = readSettingsFromUI();
     saveSettings(currentSettings);
+    trackEvent(Events.SETTING_CHANGED, {
+      ai_strategy: currentSettings.aiStrategy,
+      ai_difficulty: currentSettings.aiDifficulty,
+      obstacle_pattern: currentSettings.obstaclePattern,
+    });
     startNewGame(currentSettings);
   });
 
@@ -554,6 +577,20 @@ function bindUiButtons(): void {
   document.getElementById('tutorial-close')?.addEventListener('click', hideTutorial);
   document.getElementById('tutorial-modal')?.addEventListener('click', (ev) => {
     if (ev.target === ev.currentTarget) hideTutorial();
+  });
+
+  // プライバシーポリシー
+  document.getElementById('title-privacy')?.addEventListener('click', () => {
+    document.getElementById('privacy-modal')?.classList.add('show');
+    trackEvent(Events.PRIVACY_OPENED);
+  });
+  document.getElementById('privacy-close')?.addEventListener('click', () => {
+    document.getElementById('privacy-modal')?.classList.remove('show');
+  });
+  document.getElementById('privacy-modal')?.addEventListener('click', (ev) => {
+    if (ev.target === ev.currentTarget) {
+      document.getElementById('privacy-modal')?.classList.remove('show');
+    }
   });
 }
 
