@@ -146,10 +146,9 @@ export const en: Locale = {
         <li>The <b>legend panel</b> on the right shows each piece's stats</li>
         <li>Walls in your home (<b>■</b>) are friendly — your pieces won't attack them</li>
         <li>Enemy walls block movement (HP 3) — destroy to advance</li>
-        <li>Each of the 10 pieces has unique movement, HP, and attack (see legend)</li>
+        <li>Each of the 9 pieces has unique movement, HP, and attack (see legend)</li>
         <li>Archer (front range 2) and Slinger (front cone, range 3) attack from distance (blocked by allies)</li>
         <li><b>Commander</b>: spawns a soldier on an adjacent empty cell after moving each turn</li>
-        <li><b>Catapult</b>: deals 1 damage to a random enemy after moving each turn</li>
         <li>Income increases by 1g every 2 cycles — long games favor expensive pieces</li>
       </ul>
 

@@ -224,11 +224,9 @@ function drawMoveGrid(
   if (type.attackRange === 'spearReach') {
     drawSpearReachMark(p, pos.x + cellSize * 2.4, row1Y, sideColor, aByte);
   }
-  // 支援駒のマーク(増援指揮官 / 投石機)
+  // 支援駒のマーク(増援指揮官)
   if (type.support === 'spawn_adjacent_soldier') {
     drawSupportMark(p, pos.x + cellSize * 2.4, row1Y, sideColor, aByte, '＋');
-  } else if (type.support === 'random_enemy_damage') {
-    drawSupportMark(p, pos.x + cellSize * 2.4, row1Y, sideColor, aByte, '△');
   }
 }
 

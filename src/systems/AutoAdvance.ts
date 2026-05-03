@@ -186,7 +186,7 @@ function chooseAction(piece: Piece, board: BoardState, config: GameConfig): Chos
 //   Phase 1: 全駒のアクション決定
 //   Phase 2A: 遠距離攻撃 + 槍兵横払い 同時解決
 //   Phase 2B: melee + move 順次処理
-//   Phase 2C: 支援効果(指揮官 / 投石機)を移動後の位置で適用
+//   Phase 2C: 支援効果(指揮官)を移動後の位置で適用
 //   Phase 3: 到達判定
 export function runOneTurn(state: GameState, turnIndex: number): AnimationStep {
   const step: AnimationStep = {
@@ -408,8 +408,7 @@ export function runAdvancePhase(state: GameState): AnimationStep[] {
 
 // 各ターンの移動後に支援効果を適用(per-turn, 3 ターン分発動)
 //   増援指揮官: 移動後の位置で隣接空マスに兵士 1 体を生成(時計回りに最初の空マス)
-//   投石機: 決定論的に選んだ敵駒 1 体(可能なら非障害物優先)に 1 ダメージ
-function applyTurnSupportEffects(state: GameState, turnIndex: number, step: AnimationStep): void {
+function applyTurnSupportEffects(state: GameState, _turnIndex: number, _step: AnimationStep): void {
   const supporters = [...state.board.pieces].filter((p) => {
     if (p.hp <= 0) return false;
     const type = getPieceType(state.config, p.typeId);
@@ -439,35 +438,6 @@ function applyTurnSupportEffects(state: GameState, turnIndex: number, step: Anim
         });
         break;  // 1 体のみ生成
       }
-    } else if (type.support === 'random_enemy_damage') {
-      // ユニット優先: 敵駒のうち障害物以外を優先候補に
-      const enemyAll = state.board.pieces.filter(
-        (p) => p.side !== piece.side && p.hp > 0,
-      );
-      const enemyUnits = enemyAll.filter((p) => p.typeId !== 'obstacle');
-      const targets = enemyUnits.length > 0 ? enemyUnits : enemyAll;
-      if (targets.length === 0) continue;
-      // 決定論的選定(cycle + turn + pieceId の組合せでターン毎に変化)
-      const seed = state.cycle * 1000 + turnIndex * 31 + piece.id;
-      const idx = Math.abs(seed) % targets.length;
-      const target = targets[idx];
-      const beforeHp = target.hp;
-      target.hp -= 1;
-      // 戦闘イベントとして記録(視覚フィードバック)
-      step.combatEvents.push({
-        attackerId: piece.id,
-        defenderId: target.id,
-        damage: 1,
-        defenderHpAfter: target.hp,
-        defenderDestroyed: target.hp <= 0,
-        atCol: target.col,
-        atRow: target.row,
-      });
-      if (target.hp <= 0) {
-        recordKill(state, piece, target);
-        removePieceById(state.board, target.id);
-      }
-      void beforeHp;
     }
   }
 }

@@ -93,13 +93,13 @@ export function aiSuggestedLoadout(strategy: AiStrategy, difficulty: AiDifficult
   }
   if (difficulty === 'normal') {
     if (strategy === 'aggressive') return ['soldier', 'scout', 'cavalry', 'assassin', 'thrower', 'spear', 'heavy'];
-    if (strategy === 'defensive') return ['soldier', 'spear', 'heavy', 'archer', 'commander', 'catapult', 'cavalry'];
-    return ['soldier', 'scout', 'cavalry', 'archer', 'heavy', 'spear', 'assassin', 'thrower', 'commander', 'catapult'];
+    if (strategy === 'defensive') return ['soldier', 'spear', 'heavy', 'archer', 'commander', 'cavalry'];
+    return ['soldier', 'scout', 'cavalry', 'archer', 'heavy', 'spear', 'assassin', 'thrower', 'commander'];
   }
   // hard
   if (strategy === 'aggressive') return ['soldier', 'scout', 'cavalry', 'assassin', 'thrower', 'archer', 'spear', 'heavy'];
-  if (strategy === 'defensive') return ['heavy', 'archer', 'spear', 'commander', 'catapult', 'thrower', 'soldier', 'cavalry'];
-  return ['soldier', 'scout', 'cavalry', 'archer', 'heavy', 'spear', 'assassin', 'thrower', 'commander', 'catapult'];
+  if (strategy === 'defensive') return ['heavy', 'archer', 'spear', 'commander', 'thrower', 'soldier', 'cavalry'];
+  return ['soldier', 'scout', 'cavalry', 'archer', 'heavy', 'spear', 'assassin', 'thrower', 'commander'];
 }
 
 // 旧 API 互換(難易度のみベース、戦略は balanced と見なす)

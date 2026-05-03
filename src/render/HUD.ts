@@ -100,8 +100,6 @@ export function moveGridHtml(moveStyle: string, attackRange: string, support?: s
   // 支援バッジ
   if (support === 'spawn_adjacent_soldier') {
     rangedBadge += '<span class="ranged-badge" title="毎ターン (移動後) に隣接空マスへ兵士を生成" style="background:rgba(216,192,104,0.4); border-color:#b89968; color:#6a4818">＋兵士</span>';
-  } else if (support === 'random_enemy_damage') {
-    rangedBadge += '<span class="ranged-badge" title="毎ターン (移動後) にランダムな敵駒へ 1 ダメージ" style="background:rgba(138,112,80,0.4); border-color:#8a7050; color:#3a2c1c">△投石</span>';
   }
   let rows: string[];
   switch (moveStyle) {

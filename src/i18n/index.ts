@@ -82,7 +82,6 @@ const pieceNameMap: Record<string, { ja: string; en: string }> = {
   assassin: { ja: '暗殺者', en: 'Assassin' },
   thrower: { ja: '投石兵', en: 'Slinger' },
   commander: { ja: '増援指揮官', en: 'Commander' },
-  catapult: { ja: '投石機', en: 'Catapult' },
   obstacle: { ja: '障害物', en: 'Wall' },
 };
 

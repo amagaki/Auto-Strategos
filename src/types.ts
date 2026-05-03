@@ -6,14 +6,14 @@ export type Side = 'player' | 'enemy';
 export type PieceTypeId =
   | 'soldier' | 'scout' | 'cavalry' | 'archer' | 'heavy'
   | 'spear' | 'assassin'
-  | 'thrower' | 'commander' | 'catapult'
+  | 'thrower' | 'commander'
   | 'obstacle';
 
 export type MoveStyle =
   | 'forwardWithDiag'    // 前 1 / 斜め前 1(兵士・弓兵)
   | 'diagonalOnly'       // 斜め前 1 のみ(斥候)
   | 'cavalry'            // 前 2 / 斜め前 1(騎兵)
-  | 'forwardOnlyHeavy'   // 前 1 のみ(重装兵・槍兵・投石兵・指揮官・投石機)
+  | 'forwardOnlyHeavy'   // 前 1 のみ(重装兵・槍兵・投石兵・指揮官)
   | 'assassin'           // 斜め前 1 / 斜め前 2(暗殺者、途中マス占有で 2 マス先は不可)
   | 'stationary';        // 動かない(障害物)
 
@@ -22,12 +22,11 @@ export type AttackRange =
   | 'spearReach'         // 前 1 / 斜め前 1 / 横 1(槍兵: 扇形)
   | 'rangedForward'      // 前方 2 マス遠距離(弓兵)
   | 'longRanged'         // 前方 3 マス遠距離(投石兵)
-  | 'none';              // 攻撃しない(障害物・指揮官・投石機)
+  | 'none';              // 攻撃しない(障害物・指揮官)
 
-// サイクル開始時に発動する支援効果
+// 毎ターン移動後に発動する支援効果
 export type SupportEffect =
-  | 'spawn_adjacent_soldier'   // 増援指揮官: 隣接空マスに兵士 1 体生成
-  | 'random_enemy_damage';     // 投石機: ランダム敵駒 1 体に 1 ダメージ
+  | 'spawn_adjacent_soldier';   // 増援指揮官: 隣接空マスに兵士 1 体生成
 
 export interface PieceTypeData {
   id: PieceTypeId;
@@ -39,7 +38,7 @@ export interface PieceTypeData {
   cost: number;
   moveStyle: MoveStyle;
   attackRange: AttackRange;
-  // サイクル開始時の支援効果(増援指揮官・投石機)
+  // 毎ターン移動後に発動する支援効果(増援指揮官)
   support?: SupportEffect;
 }
 

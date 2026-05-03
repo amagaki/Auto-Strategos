@@ -101,18 +101,6 @@
       "support": "spawn_adjacent_soldier"
     },
     {
-      "id": "catapult",
-      "name": "投石機",
-      "symbol": "投",
-      "color": "#8a7050",
-      "attack": 0,
-      "hp": 1,
-      "cost": 5,
-      "moveStyle": "forwardOnlyHeavy",
-      "attackRange": "none",
-      "support": "random_enemy_damage"
-    },
-    {
       "id": "obstacle",
       "name": "障害物",
       "symbol": "■",

@@ -54,6 +54,13 @@ let state: GameState | null = null;
 const SETTINGS_KEY = 'auto-strategos-settings-v1';
 const TUTORIAL_KEY = 'auto-strategos-tutorial-seen-v1';
 
+// 削除済 / 未知の駒種を loadout から除去するフィルタ(localStorage 互換)
+const REMOVED_PIECE_IDS = new Set<string>(['catapult']);
+function sanitizeLoadout(arr: unknown): PieceTypeId[] {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((id): id is PieceTypeId => typeof id === 'string' && !REMOVED_PIECE_IDS.has(id));
+}
+
 function loadSettings(): GameSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
@@ -61,8 +68,8 @@ function loadSettings(): GameSettings {
     const parsed = JSON.parse(raw) as Partial<GameSettings>;
     return {
       aiStrategy: parsed.aiStrategy ?? DEFAULT_SETTINGS.aiStrategy,
-      loadoutPreset: parsed.loadoutPreset ?? DEFAULT_SETTINGS.loadoutPreset,
-      aiLoadoutPreset: parsed.aiLoadoutPreset ?? DEFAULT_SETTINGS.aiLoadoutPreset,
+      loadoutPreset: parsed.loadoutPreset ? sanitizeLoadout(parsed.loadoutPreset) : DEFAULT_SETTINGS.loadoutPreset,
+      aiLoadoutPreset: parsed.aiLoadoutPreset ? sanitizeLoadout(parsed.aiLoadoutPreset) : DEFAULT_SETTINGS.aiLoadoutPreset,
       aiDifficulty: parsed.aiDifficulty ?? DEFAULT_SETTINGS.aiDifficulty,
       obstaclePattern: parsed.obstaclePattern ?? DEFAULT_SETTINGS.obstaclePattern,
     };
