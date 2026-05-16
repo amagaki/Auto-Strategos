@@ -22,8 +22,6 @@
 
 **BGM**: 魔王魂 (https://maou.audio/)
 
-使用した BGM: https://maou.audio/bgm_piano27/
-
 魔王魂様。素敵な BGM をありがとうございました。ゲームに音楽が入って素敵になりました。
 
 ---
