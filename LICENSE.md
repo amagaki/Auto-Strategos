@@ -1,6 +1,6 @@
 # License — Auto-Strategos
 
-Copyright (c) 2026 kawashima
+Copyright (c) 2026 amagaki
 
 このプロジェクトは **Creative Commons 表示 - 非営利 - 改変禁止 4.0 国際 (CC BY-NC-ND 4.0)** に基づいて提供されています。
 
@@ -47,7 +47,7 @@ For full legal text, see: https://creativecommons.org/licenses/by-nc-nd/4.0/lega
 
 ## 著作権者連絡先 / Contact
 
-kawashima(プロジェクトリポジトリの Issues / Discussions 経由)
+amagaki(プロジェクトリポジトリの Issues / Discussions 経由)
 
 ## 作者についての注記
 
